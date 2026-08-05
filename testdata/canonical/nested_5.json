@@ -1,0 +1,42 @@
+{
+  "name": "deep",
+  "description": "nested",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "l1": {
+        "type": "object",
+        "properties": {
+          "l2": {
+            "type": "object",
+            "properties": {
+              "l3": {
+                "type": "object",
+                "properties": {
+                  "l4": {
+                    "type": "object",
+                    "properties": {
+                      "l5": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "leaf": { "type": "string", "default": "ok" }
+                          }
+                        },
+                        "default": [{ "leaf": "ok" }]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputSchema": { "type": "object" },
+  "annotations": {},
+  "_meta": { "depth": 5 }
+}

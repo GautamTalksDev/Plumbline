@@ -1,0 +1,9 @@
+{
+  "name": "num",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "n": { "type": "number", "default": 1.0 }
+    }
+  }
+}
