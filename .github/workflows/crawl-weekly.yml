@@ -53,7 +53,7 @@ jobs:
             echo "PLUMBLINE_REPO=$GITHUB_WORKSPACE"
           } > "$HOME/.plumbline/crawl.env"
       - name: Restore crawl state and log
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.plumbline/crawl-state.json
