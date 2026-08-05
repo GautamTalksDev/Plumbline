@@ -16,7 +16,7 @@ func NewDockerSandbox(engine string) (*DockerSandbox, error) {
 type DockerSandbox struct{}
 
 func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
-	return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: "not linux"}
+	return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 }
 
 // NewUnshareSandbox is unavailable off Linux.
@@ -27,7 +27,7 @@ func NewUnshareSandbox() (*UnshareSandbox, error) {
 type UnshareSandbox struct{}
 
 func (u *UnshareSandbox) Observe(ctx context.Context, t Target) Observation {
-	return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: "not linux"}
+	return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 }
 
 // DockerRunArgs documents expected flags for reviewers on all platforms.

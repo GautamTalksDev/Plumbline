@@ -86,7 +86,7 @@ func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
 	defer cancel()
 
 	if t.Command == "" && t.URL == "" {
-		return Observation{ServerID: t.ServerID, EventType: EventRefused, Detail: "no URL or Command"}
+		return observationFromClassified(t.ServerID, Classified{Event: EventRefused, Diagnostic: DiagNoTarget})
 	}
 	if t.URL != "" && t.Command == "" {
 		return observeHTTPAllowlisted(ctx, t)
@@ -105,7 +105,7 @@ func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
 	cmd := exec.CommandContext(ctx, d.Engine, args...)
 	bin, err := os.ReadFile(t.Command)
 	if err != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: err.Error()}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 	cmd.Stdin = bytes.NewReader(bin)
 	var stdout, stderr bytes.Buffer
@@ -113,14 +113,10 @@ func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if ctx.Err() != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventTimeout, Detail: "wall clock exceeded"}
+		return observationFromClassified(t.ServerID, Classified{Event: EventTimeout, Diagnostic: DiagTimeout})
 	}
 	if err != nil {
-		ev, detail := MapEvent(fmt.Errorf("%v: %s", err, stderr.String()))
-		if ev == EventTransport {
-			ev = EventSandbox
-		}
-		return Observation{ServerID: t.ServerID, EventType: ev, Detail: detail}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 	return parseObserveOutput(t.ServerID, stdout.Bytes())
 }
@@ -145,27 +141,40 @@ func filterArgs(args []string, key, val string) []string {
 func parseObserveOutput(serverID string, raw []byte) Observation {
 	raw = bytes.TrimSpace(raw)
 	if len(raw) == 0 {
-		return Observation{ServerID: serverID, EventType: EventMalformed, Detail: "empty sandbox output"}
+		return observationFromClassified(serverID, Classified{Event: EventMalformed, Diagnostic: DiagMalformed})
 	}
 	var payload struct {
 		Event           string            `json:"event"`
 		ProtocolVersion string            `json:"protocolVersion"`
 		Tools           []json.RawMessage `json:"tools"`
 		Detail          string            `json:"detail"`
+		Diagnostic      string            `json:"diagnostic"`
+		HTTPStatus      *int              `json:"http_status"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return Observation{ServerID: serverID, EventType: EventMalformed, Detail: err.Error()}
+		return observationFromClassified(serverID, Classified{Event: EventMalformed, Diagnostic: DiagMalformed})
 	}
 	ev := payload.Event
 	if ev == "" {
 		ev = EventOK
+	}
+	diag := payload.Diagnostic
+	if diag == "" {
+		diag = payload.Detail
+	}
+	// Only accept known fixed diagnostics from the sandbox helper; never keep free text.
+	if !isFixedDiagnostic(diag) {
+		diag = fixedDiagnosticForEvent(ev)
 	}
 	return Observation{
 		ServerID:        serverID,
 		EventType:       ev,
 		ProtocolVersion: payload.ProtocolVersion,
 		Tools:           payload.Tools,
-		Detail:          payload.Detail,
+		Detail:          diag,
+		Diagnostic:      diag,
+		HTTPStatus:      payload.HTTPStatus,
+		EventsVersion:   EventsVersionV2,
 	}
 }
 

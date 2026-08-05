@@ -20,16 +20,21 @@ const DefaultRegistryURL = "https://registry.modelcontextprotocol.io"
 const UserAgent = "PlumblineCrawler/0.1 (+https://github.com/GautamTalksDev/Plumbline/blob/main/docs/CRAWLING.md)"
 
 // Event types recorded for every server (including failures).
+// events-v2 replaces transport_error with the mutually exclusive classes below.
 const (
-	EventOK        = "ok"
-	EventTimeout   = "timeout"
-	EventRefused   = "refused"
-	EventMalformed = "malformed"
-	EventTooLarge  = "too_large"
-	EventSandbox   = "sandbox_error"
-	EventOptOut    = "opt_out"
-	EventTransport = "transport_error"
-	EventProtocol  = "protocol_error"
+	EventOK           = "ok"
+	EventAuthRequired = "auth_required"
+	EventEndpoint404  = "endpoint_404"
+	EventDNS          = "dns_failure"
+	EventTLS          = "tls_failure"
+	EventHTTPError    = "http_error"
+	EventProtocol     = "protocol_error"
+	EventMalformed    = "malformed"
+	EventTimeout      = "timeout"
+	EventSandbox      = "sandbox_error"
+	EventRefused      = "refused"
+	EventTooLarge     = "too_large"
+	EventOptOut       = "opt_out"
 )
 
 // StatusToolName is the tool_name used for per-server status log entries.
@@ -65,7 +70,10 @@ type Summary struct {
 type Observation struct {
 	ServerID        string
 	EventType       string
-	Detail          string
+	Detail          string // fixed diagnostic (legacy field name; same as Diagnostic)
+	Diagnostic      string
+	HTTPStatus      *int
+	EventsVersion   string
 	ProtocolVersion string
 	Tools           []json.RawMessage
 }
@@ -142,9 +150,21 @@ func Run(ctx context.Context, cfg Config) (Summary, error) {
 			}
 			var obs Observation
 			if optOut.IsOptedOut(srv.Name) || srv.OptOutMeta {
-				obs = Observation{ServerID: srv.Name, EventType: EventOptOut, Detail: "opt-out"}
+				obs = Observation{
+					ServerID:      srv.Name,
+					EventType:     EventOptOut,
+					Detail:        DiagOptOut,
+					Diagnostic:    DiagOptOut,
+					EventsVersion: EventsVersionV2,
+				}
 			} else {
 				obs = cfg.Sandbox.Observe(ctx, TargetFromRegistry(srv))
+			}
+			if obs.EventsVersion == "" {
+				obs.EventsVersion = EventsVersionV2
+			}
+			if obs.Diagnostic == "" && obs.Detail != "" {
+				obs.Diagnostic = obs.Detail
 			}
 
 			mu.Lock()
@@ -305,16 +325,24 @@ func recordObservation(lg *log.Log, obs Observation) (toolsLogged int, err error
 }
 
 func eventCanonical(obs Observation) ([]byte, string, error) {
+	diag := obs.Diagnostic
+	if diag == "" {
+		diag = obs.Detail
+	}
 	payload, err := json.Marshal(struct {
-		Event     string `json:"event"`
-		Server    string `json:"server_id"`
-		Detail    string `json:"detail,omitempty"`
-		ToolCount int    `json:"tool_count,omitempty"`
+		Event         string `json:"event"`
+		Server        string `json:"server_id"`
+		Diagnostic    string `json:"diagnostic,omitempty"`
+		HTTPStatus    *int   `json:"http_status"`
+		EventsVersion string `json:"events_version"`
+		ToolCount     int    `json:"tool_count,omitempty"`
 	}{
-		Event:     obs.EventType,
-		Server:    obs.ServerID,
-		Detail:    obs.Detail,
-		ToolCount: len(obs.Tools),
+		Event:         obs.EventType,
+		Server:        obs.ServerID,
+		Diagnostic:    diag,
+		HTTPStatus:    obs.HTTPStatus,
+		EventsVersion: obs.EventsVersion,
+		ToolCount:     len(obs.Tools),
 	})
 	if err != nil {
 		return nil, "", err

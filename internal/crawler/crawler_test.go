@@ -301,6 +301,7 @@ func TestFailureEventTypesReported(t *testing.T) {
 }
 
 func TestLiveGuard(t *testing.T) {
+	t.Setenv("PLUMBLINE_CRAWL_I_UNDERSTAND", "")
 	_, err := crawler.Run(context.Background(), crawler.Config{
 		StatePath: filepath.Join(t.TempDir(), "s"),
 		LogPath:   filepath.Join(t.TempDir(), "l"),

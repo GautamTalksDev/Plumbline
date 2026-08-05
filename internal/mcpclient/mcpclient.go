@@ -224,13 +224,18 @@ func mapContextError(err error) error {
 	if err == nil {
 		return nil
 	}
+	var se *StatusError
+	if errors.As(err, &se) {
+		return err
+	}
 	if errors.Is(err, ErrTimeout) || errors.Is(err, ErrTooLarge) ||
 		errors.Is(err, ErrMalformed) || errors.Is(err, ErrTransport) ||
-		errors.Is(err, ErrProtocol) {
+		errors.Is(err, ErrProtocol) || errors.Is(err, ErrDNS) ||
+		errors.Is(err, ErrTLS) || errors.Is(err, ErrRefused) {
 		return err
 	}
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return fmt.Errorf("%w: %v", ErrTimeout, err)
+		return fmt.Errorf("%w", ErrTimeout)
 	}
 	return err
 }

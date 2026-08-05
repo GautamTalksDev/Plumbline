@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -41,32 +40,32 @@ func (u *UnshareSandbox) Observe(ctx context.Context, t Target) Observation {
 		return observeHTTPAllowlisted(ctx, t)
 	}
 	if t.Command == "" {
-		return Observation{ServerID: t.ServerID, EventType: EventRefused, Detail: "no command"}
+		return observationFromClassified(t.ServerID, Classified{Event: EventRefused, Diagnostic: DiagNoTarget})
 	}
 
 	helper, err := u.jailHelperPath()
 	if err != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: err.Error()}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 
 	jailDir, err := os.MkdirTemp("", "plumbline-jail-*")
 	if err != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: err.Error()}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 	defer os.RemoveAll(jailDir)
 
 	root := filepath.Join(jailDir, "root")
 	if err := os.MkdirAll(root, 0o755); err != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: err.Error()}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 	// Place target outside /tmp so the jail's tmpfs does not wipe it.
 	target := filepath.Join(root, "observe")
 	bin, err := os.ReadFile(t.Command)
 	if err != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: err.Error()}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 	if err := os.WriteFile(target, bin, 0o755); err != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: err.Error()}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 
 	args := []string{
@@ -85,26 +84,18 @@ func (u *UnshareSandbox) Observe(ctx context.Context, t Target) Observation {
 
 	err = cmd.Run()
 	if ctx.Err() != nil {
-		return Observation{ServerID: t.ServerID, EventType: EventTimeout, Detail: "wall clock exceeded"}
+		return observationFromClassified(t.ServerID, Classified{Event: EventTimeout, Diagnostic: DiagTimeout})
 	}
 	if err != nil {
-		detail := strings.TrimSpace(stderr.String())
-		if detail == "" {
-			detail = err.Error()
-		}
 		if looksLikeObserveJSON(stdout.Bytes()) {
 			return parseObserveOutput(t.ServerID, stdout.Bytes())
 		}
-		return Observation{
-			ServerID:  t.ServerID,
-			EventType: EventSandbox,
-			Detail:    "jailed exit: " + truncate([]byte(detail), 200),
-		}
+		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
 	}
 	if looksLikeObserveJSON(stdout.Bytes()) {
 		return parseObserveOutput(t.ServerID, stdout.Bytes())
 	}
-	return Observation{ServerID: t.ServerID, EventType: EventOK, Detail: "jailed"}
+	return observationFromClassified(t.ServerID, Classified{Event: EventOK, Diagnostic: DiagOK})
 }
 
 func (u *UnshareSandbox) jailHelperPath() (string, error) {

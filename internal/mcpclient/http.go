@@ -73,7 +73,7 @@ func (t *httpTransport) roundTrip(ctx context.Context, req json.RawMessage) (jso
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := readAllLimited(resp.Body, 4096)
-		return nil, fmt.Errorf("%w: HTTP %d: %s", ErrTransport, resp.StatusCode, truncateForErr(body))
+		return nil, statusError(resp.StatusCode, body)
 	}
 
 	ct := resp.Header.Get("Content-Type")
@@ -86,7 +86,8 @@ func (t *httpTransport) roundTrip(ctx context.Context, req json.RawMessage) (jso
 		return nil, err
 	}
 	if len(body) == 0 {
-		return nil, fmt.Errorf("%w: empty HTTP body", ErrTransport)
+		// Empty body on 2xx after POST is not "unreachable"; treat as protocol.
+		return nil, fmt.Errorf("%w: empty HTTP body", ErrProtocol)
 	}
 	if !json.Valid(body) {
 		return nil, fmt.Errorf("%w: HTTP body", ErrMalformed)
@@ -116,23 +117,13 @@ func (t *httpTransport) SetProtocolVersion(v string) {
 	t.mu.Unlock()
 }
 
-func mapHTTPDoError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return fmt.Errorf("%w: %v", ErrTimeout, err)
-	}
-	return fmt.Errorf("%w: %v", ErrTransport, err)
-}
-
 func readSSEJSONRPC(ctx context.Context, r io.Reader) (json.RawMessage, error) {
 	lr := newLimitedReader(r, MaxResponseBytes)
 	buf := make([]byte, 0, 4096)
 	tmp := make([]byte, 4096)
 	for {
 		if err := ctx.Err(); err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrTimeout, err)
+			return nil, fmt.Errorf("%w", ErrTimeout)
 		}
 		n, err := lr.Read(tmp)
 		if n > 0 {
@@ -151,19 +142,24 @@ func readSSEJSONRPC(ctx context.Context, r io.Reader) (json.RawMessage, error) {
 				}
 				return msg, nil
 			}
-			return nil, fmt.Errorf("%w: SSE ended without JSON-RPC data", ErrTransport)
+			// POST returned 2xx SSE that ended without a JSON-RPC frame:
+			// transport reached the server; classify as protocol, not transport.
+			return nil, fmt.Errorf("%w: empty SSE response", ErrProtocol)
 		}
 		if err != nil {
 			if errors.Is(err, ErrTooLarge) {
 				return nil, err
 			}
-			return nil, fmt.Errorf("%w: SSE read: %v", ErrTransport, err)
+			return nil, fmt.Errorf("%w: SSE read failed", ErrTransport)
 		}
 	}
 }
 
 func extractSSEDataJSON(buf []byte) (json.RawMessage, bool) {
+	// Normalize CRLF so Cloudflare/Node streams parse like LF-only frames.
 	s := string(buf)
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
 	for {
 		idx := strings.Index(s, "data:")
 		if idx < 0 {
