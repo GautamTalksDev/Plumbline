@@ -1,10 +1,10 @@
 # Plumbline
 
-Plumbline was an attempt to observe post-publication changes in MCP server
-tool metadata, hash them into an append-only Merkle log, and classify diffs
-with a deterministic taxonomy.
+Plumbline observes post-publication changes in MCP server tool metadata.
+It canonicalizes descriptions, hashes them into an append-only merkle log,
+and classifies diffs as cosmetic or capability-relevant.
 
-## Kill tests (pre-registered, unchanged)
+## Kill Tests
 
   KT-1: If fewer than 1% of crawled servers show any post-publication
         tool-metadata change over 6 weeks, this project is wrong and stops.
@@ -12,21 +12,38 @@ with a deterministic taxonomy.
         as cosmetic while catching at least one capability-relevant change,
         it adds nothing over sha256sum and this project stops.
 
-## Outcome
+## Status
 
-**Negative result.** See [RESULTS.md](RESULTS.md).
+Phase E (evidence). Weekly crawl ops live under `ops/` and `lab/`.
+**Do not launch. Do not post.** Kill-test evaluation waits on six consecutive
+weekly crawls with signed checkpoints and a hand-labelled MEDIUM+ set —
+see [RESULTS.md](RESULTS.md).
 
-- **KT-1: FAIL** — six-week signed crawl series not completed; ≥1% drift over
-  six weeks not established.
-- **KT-2: FAIL** — no hand-labelled ground truth; ≥80% cosmetic-correctness
-  bar not met.
+- Crawl policy: [docs/CRAWLING.md](docs/CRAWLING.md)
+- Verify any log endpoint: [docs/VERIFY.md](docs/VERIFY.md)
+- Log public key: [docs/log-public-key.ed25519](docs/log-public-key.ed25519)
+- Deferred ideas: [IDEAS.md](IDEAS.md) (do not build during Phase E)
 
-Thresholds were not adjusted. `taxonomy-v1` was not refitted to the data.
+## Layout
 
-This repository is retained as a transparent negative result and engineering
-artifact (canonicalization, Merkle log, sandboxed crawler, verify-log). It is
-not a launched product. Do not treat interim single-crawl stats as a pass of
-the pre-registered study.
+```
+cmd/plumb/             CLI (check, accept, crawl, verify-log)
+cmd/plumbd/            read-only transparency log HTTP server
+cmd/plumbline-jail/    Linux pivot_root helper for unshare sandbox
+internal/canonical/    canonicalization + hashing
+internal/mcpclient/    MCP protocol client
+internal/log/          merkle append-only log
+internal/classify/     deterministic diff classifier
+internal/crawler/      sandboxed registry crawler
+internal/httpserver/   public log HTTP API
+internal/verify/       remote log verifier (any endpoint)
+site/                  static transparency site
+ops/                   weekly crawl schedule + operator docs
+lab/                   notebook, run snapshots, hand labels (KT-2)
+IDEAS.md               deferred features (do not build in Phase E)
+docs/                  CRAWLING, VERIFY, public key
+testdata/              fixtures
+```
 
 ## License
 
@@ -34,6 +51,8 @@ Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). DCO sign-off is required. New work that
-reopens the kill tests must use a new pre-registration (e.g. taxonomy-v2), not
-a silent refit of v1.
+See [CONTRIBUTING.md](CONTRIBUTING.md). DCO sign-off is required.
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
