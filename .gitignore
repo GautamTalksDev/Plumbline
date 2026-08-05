@@ -1,0 +1,42 @@
+# Binaries
+/plumb
+/cmd/plumb/plumb
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go
+/vendor/
+/bin/
+/dist/
+coverage.out
+coverage.html
+*.coverprofile
+profile.cov
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# OS
+Thumbs.db
+
+# Tooling caches
+.golangci.cache/
+.cache/
