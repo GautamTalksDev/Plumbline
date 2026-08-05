@@ -69,7 +69,7 @@ jobs:
           set +a
           ./scripts/run-weekly-crawl.sh
       - name: Upload run artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: crawl-run-${{ github.run_id }}
           path: lab/runs/
