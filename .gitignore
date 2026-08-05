@@ -34,6 +34,13 @@ profile.cov
 *.key
 credentials.json
 
+# Ed25519 log signing keys (generate outside the repo; never commit)
+/keys/
+*.ed25519
+*.ed25519.pub
+signing.key
+signing.pub
+
 # OS
 Thumbs.db
 
