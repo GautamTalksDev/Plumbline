@@ -17,6 +17,7 @@ type RegistryServer struct {
 	Description string
 	Version     string
 	Remotes     []Remote
+	Packages    []Package
 	OptOutMeta  bool
 }
 
@@ -24,6 +25,14 @@ type RegistryServer struct {
 type Remote struct {
 	Type string
 	URL  string
+}
+
+// Package is a registry-published installable package (stdio spawn target).
+type Package struct {
+	RegistryType string // npm, pypi, oci, mcpb, …
+	Identifier   string
+	Version      string // registry-pinned version
+	Transport    string
 }
 
 // RegistryClient lists servers with cursor pagination.
@@ -94,6 +103,14 @@ func (r *httpRegistry) ListServers(ctx context.Context, cursor string, limit int
 					Type string `json:"type"`
 					URL  string `json:"url"`
 				} `json:"remotes"`
+				Packages []struct {
+					RegistryType string `json:"registryType"`
+					Identifier   string `json:"identifier"`
+					Version      string `json:"version"`
+					Transport    struct {
+						Type string `json:"type"`
+					} `json:"transport"`
+				} `json:"packages"`
 			} `json:"server"`
 			Meta map[string]json.RawMessage `json:"_meta"`
 		} `json:"servers"`
@@ -115,6 +132,14 @@ func (r *httpRegistry) ListServers(ctx context.Context, cursor string, limit int
 		}
 		for _, rem := range item.Server.Remotes {
 			s.Remotes = append(s.Remotes, Remote{Type: rem.Type, URL: rem.URL})
+		}
+		for _, pkg := range item.Server.Packages {
+			s.Packages = append(s.Packages, Package{
+				RegistryType: pkg.RegistryType,
+				Identifier:   pkg.Identifier,
+				Version:      pkg.Version,
+				Transport:    pkg.Transport.Type,
+			})
 		}
 		out = append(out, s)
 	}

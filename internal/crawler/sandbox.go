@@ -26,11 +26,18 @@ type Sandbox interface {
 	Observe(ctx context.Context, t Target) Observation
 }
 
-// TargetFromRegistry picks an HTTP remote when available.
+// TargetFromRegistry builds a sandbox target.
+// Packages population prefers the primary package (stdio). Remotes are used
+// only when IncludeRemotes behaviour is applied by the caller for remote-only
+// servers, or when no packages are present.
 func TargetFromRegistry(s RegistryServer) Target {
 	t := Target{
 		ServerID: s.Name,
 		Timeout:  60 * time.Second,
+	}
+	if pkg, ok := PrimaryPackage(s); ok {
+		t.Args = []string{pkg.RegistryType, pkg.Identifier, pkg.Version}
+		return t
 	}
 	for _, r := range s.Remotes {
 		if r.URL == "" {

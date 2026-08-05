@@ -25,6 +25,10 @@ const (
 	DiagNoTarget      = "no_dialable_target"
 	DiagTooLarge      = "response_too_large"
 	DiagOptOut        = "opt_out"
+	DiagUnpollable    = "registry_unpollable"
+	DiagFetchError    = "package_fetch_failed"
+	DiagDeparted      = "cohort_member_departed"
+	DiagVersionPoll   = "version_polled"
 )
 
 // Classified is a crawl event with a fixed diagnostic and optional HTTP status.
@@ -99,7 +103,8 @@ func isFixedDiagnostic(d string) bool {
 	switch d {
 	case DiagOK, DiagAuthRequired, DiagEndpoint404, DiagDNS, DiagTLS, DiagHTTPError,
 		DiagProtocol, DiagMalformed, DiagTimeout, DiagSandbox, DiagRefused,
-		DiagNoTarget, DiagTooLarge, DiagOptOut:
+		DiagNoTarget, DiagTooLarge, DiagOptOut, DiagUnpollable, DiagFetchError,
+		DiagDeparted, DiagVersionPoll:
 		return true
 	default:
 		return false
@@ -134,6 +139,14 @@ func fixedDiagnosticForEvent(ev string) string {
 		return DiagTooLarge
 	case EventOptOut:
 		return DiagOptOut
+	case EventVersionPoll:
+		return DiagVersionPoll
+	case EventUnpollable:
+		return DiagUnpollable
+	case EventFetchError:
+		return DiagFetchError
+	case EventDeparted:
+		return DiagDeparted
 	default:
 		return DiagSandbox
 	}

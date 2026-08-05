@@ -9,7 +9,12 @@ Deferred product ideas go in [`../IDEAS.md`](../IDEAS.md) and stay closed.
 
 Accumulate a public Merkle log and a hand-labelled ground-truth set so
 KT-1 and KT-2 can be scored with real numbers after six consecutive
-weekly crawls with signed checkpoints.
+**complete** weekly crawls with signed checkpoints. Incomplete runs
+(`summary.json` → `complete: false`) do not count toward the series.
+
+The weekly crawl is two-tier (packages population only): version poll,
+then targeted spawn for version changes ∪ control cohort. See
+[`docs/CRAWLING.md`](../docs/CRAWLING.md) and [`docs/COHORT.md`](../docs/COHORT.md).
 
 ## Weekly rhythm
 
@@ -53,9 +58,9 @@ Actions is a backup, not the source of truth for the six-week series.
 
 Recorded under `lab/runs/<date>/`:
 
-- `summary.json` — servers seen/done, event counts, duration, checkpoint
+- `summary.json` — atomic write: run id, complete flag, event counts, remotes excluded, duration, checkpoint
 - `monitor.txt` — failure rate by type, duration, appear/disappear deltas vs prior run
-- `checkpoint.json` — signed tree head copy
+- `checkpoint.json` — signed tree head copy (complete runs only)
 
 ## Hand labels (KT-2 evidence)
 

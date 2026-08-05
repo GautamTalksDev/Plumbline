@@ -52,7 +52,9 @@ set +e
   --log "$LOG" \
   --signing-key "$KEY" \
   --opt-out "$OPT_OUT" \
-  >"$RUN_DIR/summary.json" 2>>"$RUN_DIR/crawl.log"
+  --cohort "$ROOT/docs/cohort-v1-members.txt" \
+  --summary "$RUN_DIR/summary.json" \
+  >"$RUN_DIR/crawl-stdout.json" 2>>"$RUN_DIR/crawl.log"
 EC=$?
 set -e
 END_EPOCH="$(date +%s)"
