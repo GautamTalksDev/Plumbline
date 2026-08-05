@@ -29,15 +29,17 @@ type ToolSource interface {
 
 // ToolObservation is one live tool hash.
 type ToolObservation struct {
-	Server   string            `json:"server"`
-	Tool     string            `json:"tool"`
-	Hash     string            `json:"hash"`
-	Raw      json.RawMessage   `json:"tool_json,omitempty"`
-	OldHash  string            `json:"old_hash,omitempty"`
-	Diff     string            `json:"diff,omitempty"`
-	Changes  []classify.Change `json:"changes,omitempty"`
-	Status   string            `json:"status"` // clean|drift|new|error
-	Error    string            `json:"error,omitempty"`
+	Server     string                 `json:"server"`
+	Tool       string                 `json:"tool"`
+	Hash       string                 `json:"hash"`
+	Raw        json.RawMessage        `json:"tool_json,omitempty"`
+	OldHash    string                 `json:"old_hash,omitempty"`
+	Diff       string                 `json:"diff,omitempty"`
+	Changes    []classify.Change      `json:"changes,omitempty"`
+	Severity   classify.Severity      `json:"severity,omitempty"`
+	Rules      []string               `json:"rules,omitempty"`
+	Status     string                 `json:"status"` // clean|drift|new|error
+	Error      string                 `json:"error,omitempty"`
 }
 
 // Result is the full check outcome.
@@ -137,6 +139,10 @@ func Run(ctx context.Context, opt Options) (Result, error) {
 			} else {
 				o.Changes = changes
 				o.Diff = formatChanges(changes)
+			}
+			if class, err := classify.Assess(rec.Tool, o.Raw); err == nil {
+				o.Severity = class.Severity
+				o.Rules = class.Rules
 			}
 		}
 	}

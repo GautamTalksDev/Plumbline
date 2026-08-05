@@ -1,0 +1,34 @@
+{
+  "name": "echo",
+  "title": "Echo",
+  "description": "Echo the input text back to the caller",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Text to echo"
+      },
+      "a": {
+        "type": "string"
+      },
+      "b": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "text",
+      "a",
+      "b"
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "_meta": {
+    "source": "fixture"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "echo",
+  "title": "Echo",
+  "description": "This tool merely mirrors textual content provided by the invoking agent session",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Text to echo"
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "_meta": {
+    "source": "fixture"
+  }
+}

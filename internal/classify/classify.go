@@ -158,6 +158,20 @@ func diffDescription(ptr string, oldS, newS string, out *[]Change) {
 	}
 	oldW := splitWords(oldS)
 	newW := splitWords(newS)
+	if len(oldW) == len(newW) {
+		same := true
+		for i := range oldW {
+			if oldW[i] != newW[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			// Whitespace/punctuation-only (or identical words): one field-level change.
+			*out = append(*out, Change{Path: ptr, Kind: Modified, Old: oldS, New: newS})
+			return
+		}
+	}
 	ops := myersWordDiff(oldW, newW)
 
 	// Collapse into hunks of contiguous equal-kind ops for stable, small output.

@@ -164,6 +164,9 @@ func writeCheckOutput(stdout, stderr io.Writer, res check.Result, asJSON bool, r
 			printLine(out, color, colorRed, fmt.Sprintf("DRIFT %s/%s", safetext.String(o.Server), safetext.String(o.Tool)))
 			fmt.Fprintf(out, "        old  %s\n", o.OldHash)
 			fmt.Fprintf(out, "        new  %s\n", o.Hash)
+			if o.Severity != "" {
+				fmt.Fprintf(out, "        severity %s  rules %v\n", o.Severity, o.Rules)
+			}
 			if o.Diff != "" {
 				fmt.Fprintln(out, "        diff:")
 				for _, line := range strings.Split(o.Diff, "\n") {
