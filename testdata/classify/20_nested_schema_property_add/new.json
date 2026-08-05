@@ -1,0 +1,34 @@
+{
+  "name": "echo",
+  "title": "Echo",
+  "description": "Echo the input text back to the caller",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Text to echo"
+      },
+      "opts": {
+        "type": "object",
+        "properties": {
+          "verbose": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  },
+  "_meta": {
+    "source": "fixture"
+  }
+}

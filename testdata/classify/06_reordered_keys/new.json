@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "source": "fixture"
+  },
+  "annotations": {
+    "readOnlyHint": true
+  },
+  "inputSchema": {
+    "required": [
+      "text"
+    ],
+    "properties": {
+      "text": {
+        "description": "Text to echo",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "description": "Echo the input text back to the caller",
+  "title": "Echo",
+  "name": "echo"
+}

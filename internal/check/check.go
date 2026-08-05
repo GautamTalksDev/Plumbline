@@ -9,8 +9,8 @@ import (
 
 	"github.com/GautamTalksDev/Plumbline/internal/baseline"
 	"github.com/GautamTalksDev/Plumbline/internal/canonical"
+	"github.com/GautamTalksDev/Plumbline/internal/classify"
 	"github.com/GautamTalksDev/Plumbline/internal/discover"
-	"github.com/GautamTalksDev/Plumbline/internal/jsondiff"
 	"github.com/GautamTalksDev/Plumbline/internal/mcpclient"
 )
 
@@ -29,14 +29,15 @@ type ToolSource interface {
 
 // ToolObservation is one live tool hash.
 type ToolObservation struct {
-	Server  string          `json:"server"`
-	Tool    string          `json:"tool"`
-	Hash    string          `json:"hash"`
-	Raw     json.RawMessage `json:"tool_json,omitempty"`
-	OldHash string          `json:"old_hash,omitempty"`
-	Diff    string          `json:"diff,omitempty"`
-	Status  string          `json:"status"` // clean|drift|new|error
-	Error   string          `json:"error,omitempty"`
+	Server   string            `json:"server"`
+	Tool     string            `json:"tool"`
+	Hash     string            `json:"hash"`
+	Raw      json.RawMessage   `json:"tool_json,omitempty"`
+	OldHash  string            `json:"old_hash,omitempty"`
+	Diff     string            `json:"diff,omitempty"`
+	Changes  []classify.Change `json:"changes,omitempty"`
+	Status   string            `json:"status"` // clean|drift|new|error
+	Error    string            `json:"error,omitempty"`
 }
 
 // Result is the full check outcome.
@@ -130,7 +131,13 @@ func Run(ctx context.Context, opt Options) (Result, error) {
 				continue
 			}
 			o.Status = "drift"
-			o.Diff = jsondiff.Diff(rec.Tool, o.Raw)
+			changes, err := classify.Diff(rec.Tool, o.Raw)
+			if err != nil {
+				o.Diff = err.Error()
+			} else {
+				o.Changes = changes
+				o.Diff = formatChanges(changes)
+			}
 		}
 	}
 
@@ -262,4 +269,25 @@ func Accept(ctx context.Context, server, tool string, opt Options) error {
 	}
 	bl.Set(server, tool, rec)
 	return baseline.Save(bl)
+}
+
+func formatChanges(changes []classify.Change) string {
+	if len(changes) == 0 {
+		return ""
+	}
+	var b []byte
+	for i, c := range changes {
+		if i > 0 {
+			b = append(b, '\n')
+		}
+		switch c.Kind {
+		case classify.Added:
+			b = append(b, fmt.Sprintf("+ %s: %s", c.Path, c.New)...)
+		case classify.Removed:
+			b = append(b, fmt.Sprintf("- %s: %s", c.Path, c.Old)...)
+		default:
+			b = append(b, fmt.Sprintf("~ %s: %s → %s", c.Path, c.Old, c.New)...)
+		}
+	}
+	return string(b)
 }

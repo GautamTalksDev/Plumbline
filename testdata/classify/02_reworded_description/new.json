@@ -1,0 +1,23 @@
+{
+  "name": "echo",
+  "title": "Echo",
+  "description": "Return the provided text to the user unchanged",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "Text to echo"
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  },
+  "_meta": {
+    "source": "fixture"
+  }
+}
