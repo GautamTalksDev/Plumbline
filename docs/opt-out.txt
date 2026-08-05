@@ -1,0 +1,11 @@
+# Plumbline crawl opt-out list
+#
+# One registry server name per line (exact match).
+# Lines starting with # are comments.
+#
+# To opt out: see docs/CRAWLING.md — email/issue with [crawl-opt-out],
+# or set registry _meta "plumbline.org/opt-out": true.
+#
+# This file is loaded by `plumb crawl` (default --opt-out docs/opt-out.txt
+# when run from a source checkout, or ~/.plumbline/opt-out.txt).
+

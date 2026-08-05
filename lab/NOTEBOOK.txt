@@ -1,0 +1,36 @@
+Plumbline lab notebook
+======================
+
+Plain text. Date, run, observations, surprises.
+No launches. No posts. No tweets. Six weeks of evidence.
+
+----
+date: 2026-08-05
+run: week-1 crawl started (ops setup + first live run)
+observations:
+  - Scheduled weekly crawl via ops/systemd timer (next: Mon 2026-08-10) + optional GHA cron.
+  - Monitoring script, MEDIUM+ export, labels rubric, IDEAS.md (15 deferred entries).
+  - Containment tests already passed in CP-8; live registry gated by
+    PLUMBLINE_CRAWL_I_UNDERSTAND=1 on the operator host.
+  - Week-1 crawl launched 2026-08-05 via scripts/run-weekly-crawl.sh (background).
+    Signed checkpoint + lab/runs/2026-08-05/ artifacts land when it finishes.
+  - DoD still requires five more consecutive weekly crawls after this one completes.
+surprises:
+  - GitHub/Cloudflare deploy still unavailable in this environment; evidence
+    series runs on the operator Linux host (systemd), not waiting on Pages.
+
+----
+date: 2026-08-05
+run: CP-11 kill-test evaluation (RESULTS.md)
+observations:
+  - Evaluated against pre-registered KT-1/KT-2 thresholds from CP-0 README.
+  - Week-1 crawl still in progress (~1574 servers completed); 0 checkpoints;
+    0 longitudinal hash changes; 0 hand labels.
+  - KT-1 FAIL; KT-2 FAIL. Negative result published in RESULTS.md.
+  - No third-party server named; no maintainer notice required.
+surprises:
+  - Evaluating before six weekly checkpoints forces an honest protocol FAIL
+    rather than a measured <1% drift FAIL — still a stop under pre-registration.
+
+----
+(append further notes below only if opening a newly pre-registered study)

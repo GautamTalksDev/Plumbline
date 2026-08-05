@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Taxonomy — Plumbline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a class="brand" href="index.html">Plumbline</a>
+      <a href="changes.html">Changes</a>
+      <a href="server.html">Servers</a>
+      <a href="taxonomy.html">Taxonomy</a>
+      <a href="docs/VERIFY.html">Verify</a>
+    </nav>
+    <h1>Severity taxonomy</h1>
+    <p>Normative <code>taxonomy-v1</code> specification. Rendered as plain text (not HTML) so markup in the source cannot execute.</p>
+    <pre class="taxonomy-body" id="spec">Loading…</pre>
+  </div>
+  <script src="js/base.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    fetch((window.PLUMBLINE_BASE||"/") + "docs/SPEC-TAXONOMY.md")
+      .then(function (r) { return r.text(); })
+      .then(function (t) { PlumblineUI.text(document.getElementById("spec"), t); })
+      .catch(function (e) { PlumblineUI.text(document.getElementById("spec"), String(e)); });
+  </script>
+</body>
+</html>

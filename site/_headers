@@ -1,0 +1,19 @@
+# Security headers for Cloudflare Pages / compatible static hosts.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data:; base-uri 'self'; form-action 'self'
+
+/*.html
+  Cache-Control: public, max-age=60
+
+/css/*
+  Cache-Control: public, max-age=86400
+
+/js/*
+  Cache-Control: public, max-age=86400
+
+/pubkey.txt
+  Cache-Control: public, max-age=300
+  Content-Type: text/plain; charset=utf-8

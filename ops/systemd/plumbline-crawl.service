@@ -1,0 +1,18 @@
+[Unit]
+Description=Plumbline weekly MCP registry crawl (operator)
+Documentation=file:%h/projects/Plumbline/ops/README.md
+
+[Service]
+Type=oneshot
+# Adjust WorkingDirectory to your checkout.
+WorkingDirectory=%h/projects/Plumbline
+EnvironmentFile=-%h/.plumbline/crawl.env
+Environment=PLUMBLINE_HOME=%h/.plumbline
+ExecStart=%h/projects/Plumbline/scripts/run-weekly-crawl.sh
+Nice=10
+# Hardening: no new privileges; private tmp.
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,49 @@
+# Deploy the static transparency site to GitHub Pages.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "docs/log-public-key.ed25519"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp -a site/. _site/
+          cp docs/log-public-key.ed25519 _site/pubkey.txt
+          # Point the static site at a configured API origin when set.
+          if [ -n "${{ vars.PLUMBLINE_API_ORIGIN }}" ]; then
+            printf 'window.PLUMBLINE_API = %q;\n' "${{ vars.PLUMBLINE_API_ORIGIN }}" > _site/js/api-origin.js
+            sed -i 's#<script src="/js/ui.js"></script>#<script src="/js/api-origin.js"></script>\n  <script src="/js/ui.js"></script>#' _site/*.html _site/docs/*.html || true
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

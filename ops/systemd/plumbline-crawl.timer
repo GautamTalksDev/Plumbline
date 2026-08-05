@@ -1,0 +1,13 @@
+[Unit]
+Description=Plumbline weekly crawl timer
+Documentation=file:%h/projects/Plumbline/ops/README.md
+
+[Timer]
+# Monday 06:15 local time — adjust if needed. Persistent catches missed runs.
+OnCalendar=Mon *-*-* 06:15:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=plumbline-crawl.service
+
+[Install]
+WantedBy=timers.target

@@ -36,6 +36,11 @@ var severityRank = map[Severity]int{
 	SevCritical: 4,
 }
 
+// SeverityRank returns a comparable rank for filtering (NONE=0 … CRITICAL=4).
+func SeverityRank(s Severity) int {
+	return severityRank[s]
+}
+
 // Classification is the taxonomy output for a before/after tool pair.
 type Classification struct {
 	Severity Severity `json:"severity"`

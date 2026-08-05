@@ -45,6 +45,8 @@ Exit codes for plumb check:
 
 	root.AddCommand(newCheckCmd(&jsonOut))
 	root.AddCommand(newAcceptCmd(&jsonOut))
+	root.AddCommand(newCrawlCmd(&jsonOut))
+	root.AddCommand(newVerifyLogCmd(&jsonOut))
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

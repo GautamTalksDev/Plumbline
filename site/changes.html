@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recent changes — Plumbline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a class="brand" href="index.html">Plumbline</a>
+      <a href="changes.html">Changes</a>
+      <a href="server.html">Servers</a>
+      <a href="taxonomy.html">Taxonomy</a>
+      <a href="docs/VERIFY.html">Verify</a>
+    </nav>
+    <h1>Recent changes</h1>
+    <p>Post-publication tool-metadata diffs from the public log. Descriptions below are attacker-controlled — rendered as text only.</p>
+    <p class="meta" id="status">Loading…</p>
+    <ul class="list" id="list"></ul>
+  </div>
+  <script src="js/base.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    (function () {
+      var list = document.getElementById("list");
+      var status = document.getElementById("status");
+      PlumblineUI.getJSON("/changes?severity=LOW")
+        .then(function (data) {
+          var changes = data.changes || [];
+          PlumblineUI.text(status, changes.length + " change(s)");
+          if (!changes.length) {
+            list.appendChild(PlumblineUI.el("li", { className: "row" }, [
+              PlumblineUI.el("p", null, ["No capability-relevant changes logged yet."])
+            ]));
+            return;
+          }
+          changes.forEach(function (c, i) {
+            var title = PlumblineUI.el("div", { className: "title" });
+            title.appendChild(PlumblineUI.badge(c.severity));
+            title.appendChild(document.createTextNode(" "));
+            var link = PlumblineUI.el("a", {
+              href: "server.html?id=" + encodeURIComponent(c.server_id)
+            }, [c.server_id + " / " + c.tool_name]);
+            title.appendChild(link);
+
+            var rules = (c.rules || []).join(", ") || "—";
+            var meta = PlumblineUI.el("div", { className: "meta" }, [
+              "rules " + rules + " · idx " + c.old_idx + " → " + c.new_idx
+            ]);
+
+            // Diff snippets — textContent only (XSS sink if innerHTML were used).
+            var desc = PlumblineUI.el("div", { className: "desc" });
+            var lines = [];
+            (c.diff || []).slice(0, 8).forEach(function (d) {
+              lines.push(d.kind + " " + d.path);
+              if (d.old) lines.push("  - " + d.old);
+              if (d.new) lines.push("  + " + d.new);
+            });
+            PlumblineUI.text(desc, lines.join("\n") || "(no structural diff detail)");
+
+            var li = PlumblineUI.el("li", { className: "row" });
+            li.style.animationDelay = (i * 0.04) + "s";
+            li.appendChild(title);
+            li.appendChild(meta);
+            li.appendChild(desc);
+            list.appendChild(li);
+          });
+        })
+        .catch(function (err) {
+          PlumblineUI.text(status, "");
+          list.appendChild(PlumblineUI.el("li", { className: "error" }, [String(err.message || err)]));
+        });
+    })();
+  </script>
+</body>
+</html>
