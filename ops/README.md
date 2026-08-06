@@ -64,12 +64,12 @@ hardware token / other host) and run `plumb sign-checkpoint` after each
 complete run. Only the public key remains in-repo
 (`docs/log-public-key.ed25519`) and as `~/.plumbline/signing.ed25519.pub`.
 
-### GitHub Actions cron (optional backup)
+### Crawl host only (no GitHub Actions crawl)
 
-See [`.github/workflows/crawl-weekly.yml`](../.github/workflows/crawl-weekly.yml).
-Requires secrets (`PLUMBLINE_SIGNING_KEY`, etc.) and a Linux runner that may
-contact the public registry. Prefer systemd on a dedicated operator host;
-Actions is a backup, not the source of truth for the six-week series.
+Weekly crawl runs on the operator Linux host via systemd. There is **no**
+GitHub Actions crawl workflow: a public (or even private) Actions job that
+installs and executes arbitrary npm/PyPI packages on hosted runners is out
+of scope. Do not re-add one.
 
 ## Monitoring (per run)
 

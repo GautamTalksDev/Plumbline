@@ -10,10 +10,7 @@ on:
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: pages
@@ -22,28 +19,36 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Stage site
+        env:
+          # Repo variable only — never interpolate github.event.* into the shell.
+          PLUMBLINE_API_ORIGIN: ${{ vars.PLUMBLINE_API_ORIGIN }}
         run: |
           mkdir -p _site
           cp -a site/. _site/
           cp docs/log-public-key.ed25519 _site/pubkey.txt
-          # Point the static site at a configured API origin when set.
-          if [ -n "${{ vars.PLUMBLINE_API_ORIGIN }}" ]; then
-            printf 'window.PLUMBLINE_API = %q;\n' "${{ vars.PLUMBLINE_API_ORIGIN }}" > _site/js/api-origin.js
+          if [ -n "$PLUMBLINE_API_ORIGIN" ]; then
+            printf 'window.PLUMBLINE_API = %q;\n' "$PLUMBLINE_API_ORIGIN" > _site/js/api-origin.js
             sed -i 's#<script src="/js/ui.js"></script>#<script src="/js/api-origin.js"></script>\n  <script src="/js/ui.js"></script>#' _site/*.html _site/docs/*.html || true
           fi
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: _site
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write # Pages OIDC; job-scoped only
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

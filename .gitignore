@@ -47,3 +47,6 @@ Thumbs.db
 # Tooling caches
 .golangci.cache/
 .cache/
+
+# Operator evidence / hand labels / run snapshots (never publish)
+/lab/
