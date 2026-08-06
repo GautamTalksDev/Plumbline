@@ -39,7 +39,7 @@ type Tier2Job struct {
 
 // State is persisted crawl progress for crash-safe resume across both tiers.
 type State struct {
-	mu sync.Mutex `json:"-"`
+	mu *sync.Mutex `json:"-"`
 
 	RunID string `json:"run_id"`
 	Phase string `json:"phase"`
@@ -92,6 +92,9 @@ func newEmptyState() *State {
 }
 
 func (st *State) ensureMaps() {
+	if st.mu == nil {
+		st.mu = &sync.Mutex{}
+	}
 	if st.Completed == nil {
 		st.Completed = map[string]bool{}
 	}
@@ -378,5 +381,6 @@ func (st *State) Snapshot() State {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	cp := *st
+	cp.mu = nil
 	return cp
 }
