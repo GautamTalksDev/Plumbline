@@ -21,6 +21,7 @@ see [RESULTS.md](RESULTS.md).
 
 - Crawl policy: [docs/CRAWLING.md](docs/CRAWLING.md)
 - Ethics (Menlo Report alignment): [ETHICS.md](ETHICS.md)
+- Disclosure (findings about others + vulns in us): [DISCLOSURE.md](DISCLOSURE.md)
 - Study limitations at freeze: [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
 - Verify any log endpoint: [docs/VERIFY.md](docs/VERIFY.md)
 - Log public key: [docs/log-public-key.ed25519](docs/log-public-key.ed25519)
