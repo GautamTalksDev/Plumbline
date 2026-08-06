@@ -113,3 +113,16 @@ covers them if needed.
 5. Inspect the 37 `exec_failed` **once**, for aggregate characterization
    only; write composition into `docs/COHORT.md`.
 6. Report gates. Clock starts Monday either way.
+
+## Outcomes (filled after execution)
+
+- **R7-0:** held — no new `spawn_matchers-v1.txt` lines.
+- **R7-1:** 5/5 malformed = Theirs; 3/5 protocol_error = Theirs; **2/5 =
+  Ours (sandbox)** (quantrisk, apiosk: host `mcpclient` ok; jail
+  `MODULE_NOT_FOUND` / dryrun6 `protocol_error`).
+- **R7-2:** **not activated** (confirmed sandbox bugs in sample).
+- **G5a–G5d:** unchanged from dryrun6 — G5a FAIL 7.7%, G5b PASS, G5c PASS
+  307, G5d FAIL 76.2%. Residual composition written to `docs/COHORT.md`;
+  limitation carried to `RESULTS.md`.
+- **Clock:** week 1 starts Monday per stop rule (residual explained in
+  aggregate; gates not cleared by invented classes).
