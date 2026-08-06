@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GautamTalksDev/Plumbline/internal/httpserver"
 	plog "github.com/GautamTalksDev/Plumbline/internal/log"
@@ -66,7 +67,16 @@ func main() {
 	if cfg.Site != nil {
 		log.Printf("serving static site")
 	}
-	if err := http.ListenAndServe(*addr, srv.Handler()); err != nil {
+	httpSrv := &http.Server{
+		Addr:              *addr,
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 16,
+	}
+	if err := httpSrv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
