@@ -12,6 +12,13 @@ linters:
 linters-settings:
   govet:
     enable-all: true
+    disable:
+      # Idiomatic Go: `if err := f(); err != nil` inside a scope that
+      # already has an err. Not a bug class we care about.
+      - shadow
+      # Struct field reordering for padding. This project is bound by
+      # network I/O and subprocess spawning, not struct layout.
+      - fieldalignment
   gosec:
     excludes: []
 
@@ -19,3 +26,8 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    # Test fixtures deliberately use variable paths and permissive perms.
+    - path: _test\.go
+      linters:
+        - gosec
