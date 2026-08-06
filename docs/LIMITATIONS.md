@@ -33,7 +33,7 @@ The reason is empirical, not arbitrary. A partial crawl of 1,912 HTTP remotes
 produced a 70% failure rate, of which **55% were HTTP 401** — the hosted,
 vendor-operated half of the ecosystem authenticates by design and will never
 return tool metadata to an unauthenticated client. Since we do not circumvent
-access controls (`ETHICS.md` §4), those servers are permanently unobservable to
+access controls ([`ETHICS.md`](../ETHICS.md) §4), those servers are permanently unobservable to
 us. Including them would dilute any drift rate with servers we never actually
 observed.
 
