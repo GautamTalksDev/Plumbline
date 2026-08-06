@@ -45,7 +45,24 @@ Environment file (not committed): `~/.plumbline/crawl.env`
 PLUMBLINE_CRAWL_I_UNDERSTAND=1
 PLUMBLINE_HOME=/home/YOU/.plumbline
 PLUMBLINE_REPO=/path/to/Plumbline
+# Signing key stays off the crawl box (default). After each complete run:
+#   plumb sign-checkpoint --log ~/.plumbline/crawl-log.sqlite \
+#     --signing-key ~/plumbline-offline/signing.ed25519 \
+#     --out lab/runs/YYYY-MM-DD/checkpoint.json
+# Or set PLUMBLINE_SIGNING_KEY_OFFLINE to that path and let the weekly script
+# sign once at the end (still not co-resident during package execution if you
+# only mount the key after the crawl exits — preferred).
+PLUMBLINE_DEFER_SIGN=1
 ```
+
+### Signing key separation
+
+The machine that executes 479 strangers' packages must not hold the log
+signing private key during the crawl. Default weekly script uses
+`--defer-sign`. Keep `signing.ed25519` under `~/plumbline-offline/` (or a
+hardware token / other host) and run `plumb sign-checkpoint` after each
+complete run. Only the public key remains in-repo
+(`docs/log-public-key.ed25519`) and as `~/.plumbline/signing.ed25519.pub`.
 
 ### GitHub Actions cron (optional backup)
 

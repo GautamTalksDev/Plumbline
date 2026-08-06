@@ -131,3 +131,13 @@ observations:
   - package_broken treated as sound for denominator freeze; Monday holds.
 surprises: none — contamination rate 0/10; no fix, no delay.
 
+----
+date: 2026-08-06
+run: pre-Monday housekeeping (contamination caveat + secrets + key sep)
+observations:
+  - COHORT.md: n=10 rule-of-three bound (~25% at 95% CI); R7-1 jail bug unfixed on record.
+  - gitleaks detect (lab/ excluded): no leaks; 15 commits scanned.
+  - Repo public flip: blocked (gh auth skipped / not logged in) — leave private; Monday holds.
+  - Signing private key moved off crawl home to ~/plumbline-offline/; crawl defaults to --defer-sign;
+    plumb sign-checkpoint added for post-run manual/offline signing.
+surprises: none.

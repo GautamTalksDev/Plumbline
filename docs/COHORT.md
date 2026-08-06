@@ -167,8 +167,11 @@ packages importing `mcp.server.fastmcp` / modules absent from their install
 closure. npm cases failed on host Node v18.20.8 with the same class of load
 error as in-jail.
 
-**Contamination rate in this sample: 0/10.** `package_broken` is treated as
-sound for the week-1 denominator freeze. The R7-1 jail staging bug remains
-real for some `protocol_error` rows but does not, on this sample, leak into
-`package_broken` at detectable rate.
+**Contamination rate in this sample: 0/10.** That does not mean 0% in the
+class: with n=10 and zero host-ok draws, a true contamination rate up to
+roughly 25% remains consistent at 95% confidence (rule-of-three); the class
+stays for the freeze, but the bound is loose. Separately, the R7-1 jail
+staging bug (host-ok / jail-`MODULE_NOT_FOUND` for some `protocol_error`
+rows) exists and is **unfixed** — recorded here so it is not “discovered”
+later by a reader; it is not a mid-study classification change.
 

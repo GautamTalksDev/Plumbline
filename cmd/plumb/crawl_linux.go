@@ -31,6 +31,8 @@ func newCrawlCmd(jsonOut *bool) *cobra.Command {
 		tier2Conc      int
 		requestDelay   time.Duration
 		includeRemotes bool
+		dryRun         bool
+		deferSign      bool
 	)
 
 	cmd := &cobra.Command{
@@ -43,7 +45,10 @@ func newCrawlCmd(jsonOut *bool) *cobra.Command {
 
 Remotes-only servers are excluded unless --include-remotes is set.
 Read docs/CRAWLING.md and docs/COHORT.md before running.
-Requires PLUMBLINE_CRAWL_I_UNDERSTAND=1.`,
+Requires PLUMBLINE_CRAWL_I_UNDERSTAND=1.
+
+--dry-run marks the run complete but sets counts_toward_six_week_series=false
+(for shakedowns that must not start the six-week clock).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, _ := os.UserHomeDir()
 			plumDir := filepath.Join(home, ".plumbline")
@@ -63,9 +68,15 @@ Requires PLUMBLINE_CRAWL_I_UNDERSTAND=1.`,
 				cohortPath = defaultCohortPath()
 			}
 
-			priv, err := loadSigningKey(keyPath)
-			if err != nil {
-				return err
+			var priv ed25519.PrivateKey
+			if deferSign {
+				fmt.Fprintln(os.Stderr, "crawl: --defer-sign: private key not loaded; sign offline with plumb sign-checkpoint after the run")
+			} else {
+				var err error
+				priv, err = loadSigningKey(keyPath)
+				if err != nil {
+					return err
+				}
 			}
 
 			sum, err := crawler.Run(context.Background(), crawler.Config{
@@ -80,6 +91,7 @@ Requires PLUMBLINE_CRAWL_I_UNDERSTAND=1.`,
 				Tier2Concurrency: tier2Conc,
 				RequestDelay:     requestDelay,
 				IncludeRemotes:   includeRemotes,
+				DryRun:           dryRun,
 			})
 			writeCrawlOutput(cmd.OutOrStdout(), sum, *jsonOut, err)
 			if err != nil {
@@ -103,6 +115,8 @@ Requires PLUMBLINE_CRAWL_I_UNDERSTAND=1.`,
 	cmd.Flags().IntVar(&tier2Conc, "tier2-concurrency", 4, "max concurrent tier-2 sandboxed spawns")
 	cmd.Flags().DurationVar(&requestDelay, "delay", 250*time.Millisecond, "polite delay before each registry page fetch")
 	cmd.Flags().BoolVar(&includeRemotes, "include-remotes", false, "also crawl remotes-only servers (off by default)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "complete the run but set counts_toward_six_week_series=false")
+	cmd.Flags().BoolVar(&deferSign, "defer-sign", false, "do not load the private key; sign later with plumb sign-checkpoint")
 	return cmd
 }
 
@@ -136,17 +150,6 @@ func defaultOptOutPath() string {
 		return filepath.Join(home, ".plumbline", "opt-out.txt")
 	}
 	return "opt-out.txt"
-}
-
-func loadSigningKey(path string) (ed25519.PrivateKey, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("crawl: signing key %s: %w (run scripts/gen-signing-key.sh)", path, err)
-	}
-	if len(b) != ed25519.PrivateKeySize {
-		return nil, fmt.Errorf("crawl: signing key %s: want %d bytes, got %d", path, ed25519.PrivateKeySize, len(b))
-	}
-	return ed25519.PrivateKey(b), nil
 }
 
 func writeCrawlOutput(w io.Writer, sum crawler.Summary, asJSON bool, runErr error) {
