@@ -30,7 +30,7 @@ packages. Prefer: run the weekly crawl with --defer-sign, then invoke this
 command from a key kept offline (or briefly mounted) after the run completes.
 
 Writes the checkpoint JSON to --out (default: stdout / lab run folder when set).`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			home, _ := os.UserHomeDir()
 			if logPath == "" {
 				logPath = filepath.Join(home, ".plumbline", "crawl-log.sqlite")
@@ -46,7 +46,13 @@ Writes the checkpoint JSON to --out (default: stdout / lab run folder when set).
 			if err != nil {
 				return err
 			}
-			defer lg.Close()
+			defer func() {
+				// Write path: a failed close means the checkpoint may not
+				// have reached disk. Surface it rather than reporting success.
+				if cerr := lg.Close(); cerr != nil && err == nil {
+					err = cerr
+				}
+			}()
 			cp, err := lg.SignCheckpoint(ed25519.PrivateKey(priv))
 			if err != nil {
 				return err
