@@ -191,8 +191,13 @@ func VerifyConsistency(oldSize, newSize int, oldRoot, newRoot []byte, proof [][]
 		return false
 	}
 
-	fn := uint64(oldSize - 1)
-	sn := uint64(newSize - 1)
+	// Guarded above: oldSize >= 1 (negatives and zero return early) and
+	// newSize > oldSize, so neither subtraction can underflow.
+	if oldSize < 1 || newSize < 1 {
+		return false
+	}
+	fn := uint64(oldSize - 1) // #nosec G115 -- guarded non-negative above
+	sn := uint64(newSize - 1) // #nosec G115 -- guarded non-negative above
 
 	var q [][]byte
 	if isPowerOfTwo(oldSize) {
