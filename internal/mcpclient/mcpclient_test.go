@@ -361,3 +361,59 @@ func TestNoRetryOnMalformed(t *testing.T) {
 		t.Fatalf("malformed path looked like a retry: %v", time.Since(start))
 	}
 }
+
+func TestProcessExitCapturesStderrAndCode(t *testing.T) {
+	// Child writes a known stderr marker and exits 42 before speaking MCP.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := Connect(ctx, ServerSpec{
+		Transport: TransportStdio,
+		Command:   "python3",
+		Args:      []string{"-c", "import sys; sys.stderr.write('PLUMB_JAIL_MARKER\\n'); sys.exit(42)"},
+	})
+	var pe *ProcessExitError
+	if !errors.As(err, &pe) {
+		t.Fatalf("want ProcessExitError, got %v", err)
+	}
+	if pe.ExitCode != 42 {
+		t.Fatalf("exit=%d want 42", pe.ExitCode)
+	}
+	if !strings.Contains(pe.Stderr, "PLUMB_JAIL_MARKER") {
+		t.Fatalf("stderr=%q missing marker", pe.Stderr)
+	}
+}
+
+func TestProcessExitZeroNotDroppedAsBareTransport(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := Connect(ctx, ServerSpec{
+		Transport: TransportStdio,
+		Command:   "python3",
+		Args:      []string{"-c", "raise SystemExit(0)"},
+	})
+	var pe *ProcessExitError
+	if !errors.As(err, &pe) {
+		t.Fatalf("want ProcessExitError for exit 0, got %T %v", err, err)
+	}
+	if pe.ExitCode != 0 {
+		t.Fatalf("exit=%d want 0", pe.ExitCode)
+	}
+}
+
+func TestLimitedStderrKeepsTail(t *testing.T) {
+	var l limitedStderr
+	head := bytes.Repeat([]byte("H"), 3000)
+	tail := []byte("TRACE_EXCEPTION_LINE_HERE")
+	_, _ = l.Write(head)
+	_, _ = l.Write(tail)
+	s := l.String()
+	if len(s) > MaxStderrCapture {
+		t.Fatalf("len=%d want <=%d", len(s), MaxStderrCapture)
+	}
+	if !strings.Contains(s, "TRACE_EXCEPTION_LINE_HERE") {
+		t.Fatalf("missing tail: %q", s[len(s)-40:])
+	}
+	if strings.HasPrefix(s, "HHH") && !strings.Contains(s, "TRACE") {
+		t.Fatal("kept head instead of tail")
+	}
+}

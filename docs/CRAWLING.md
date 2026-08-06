@@ -6,20 +6,132 @@ collects, what it never collects, and how to opt out.
 The crawler is an **operator command** (Linux only). It is not part of
 `plumb check`. End users running `plumb check` never trigger a crawl.
 
+## Scope (v1)
+
+**Packages population only.** A server is in scope iff its registry listing
+has a non-empty `packages[]` array (~10 738 of ~20 254 listings at study
+start). Servers with only `remotes[]` (~9 164) are **excluded** from the
+weekly crawl. The remote observation code path remains in the tree but is
+gated behind `--include-remotes` (off by default).
+
+Rationale: the MCP registry treats `server.json` as immutable, so drift
+cannot originate there. For stdio/package servers the drift channel is the
+upstream package registry — a user's client runs `npx <identifier>` which
+resolves to npm-latest, not the registry-pinned version. A version poll
+detects candidate drift without spawning.
+
+## Two-tier crawl
+
+### Tier 1 — version poll (weekly, full packages population)
+
+For every in-scope server:
+
+- npm → GET package metadata from the npm registry
+- pypi → GET the PyPI JSON API
+- oci / mcpb / other → record event `unpollable` (no upstream poll)
+
+Each observation records: identifier, registry type, registry-pinned
+version, upstream-latest version, whether they differ, upstream publish
+timestamp, poll timestamp. Appended to the Merkle log. Concurrency **8**,
+polite delay between registry pages, honest User-Agent. **No sandbox** —
+metadata fetch only.
+
+### Tier 2 — spawn and hash (weekly, targeted)
+
+Install the full dependency closure during a bounded **fetch phase** (network
+open to the package registry only):
+
+- npm → `npm install --prefix <dir> --ignore-scripts <ident>@<ver>`, resolve `bin`
+- pypi → `pip install --target <dir> --no-input <ident>==<ver>`, resolve console script
+
+`--ignore-scripts` is mandatory. Lifecycle scripts never run.
+
+Then drop network to default-deny and exec `node <bin>` / `python3 <entrypoint>`
+inside the sandbox for the union of:
+
+1. every server whose upstream-latest version **changed** since the previous
+   poll, and
+2. the fixed **control cohort** (see [`COHORT.md`](COHORT.md)).
+
+Install failures are `install_failed`; missing entrypoints are
+`entrypoint_unresolved`. Never exec an archive as argv0.
+
 ## What we collect
 
-For each server listed in the [official MCP registry](https://registry.modelcontextprotocol.io),
-the crawler records:
+For each in-scope server the crawler records:
 
 - Server identity (registry name / id)
-- Public **tool metadata** returned by MCP `tools/list` (tool name, description,
-  input schema, annotations, and other fields present on the tool object)
-- Observation outcome (success or a typed failure: timeout, connection refused,
-  malformed payload, too large, protocol error, sandbox error, opt-out)
-- Protocol version advertised during initialize
-- A signed Merkle-log checkpoint at the end of each crawl run
+- Tier-1 version poll fields (above)
+- On tier-2 spawn: public **tool metadata** from MCP `tools/list`
+- Observation outcome (typed failure / success — see Event taxonomy)
+- Observed HTTP status code when applicable (nullable)
+- A short diagnostic string from a fixed set (never server-supplied text)
+- Protocol version advertised during initialize (tier 2)
+- A signed Merkle-log checkpoint at the end of each **complete** weekly run
 
 Canonical hashes of tool metadata are appended to an append-only Merkle log.
+
+## Completeness and the six-week series
+
+A run is **complete** only if tier 1 finished the full packages population
+and tier 2 finished the whole control cohort (plus any version-change
+spawns queued with it). Partial / killed runs write `summary.json` with
+`complete: false` and `counts_toward_six_week_series: false` — they are
+**not** counted toward the six-week kill-test series. Resume is
+crash-safe: a persisted cursor covers both tiers without duplicating or
+losing observations.
+
+`summary.json` is written atomically (temp file, fsync, rename).
+
+## Event taxonomy
+
+Each status row records `events_version`.
+
+### events-v1 (historical)
+
+Pre-reclassification crawls collapsed many distinct failures into a single
+`transport_error` bucket (alongside `ok`, `timeout`, `refused`, `malformed`,
+`too_large`, `protocol_error`, `sandbox_error`, and `opt_out`). Those rows
+remain in the append-only log unchanged. **Do not backfill.** Exclude
+`transport_error` / events-v1 rows from per-class failure analysis.
+
+### events-v2 (current)
+
+New observations use `events_version: "events-v2"`. `transport_error` is no
+longer emitted. Mutually exclusive failure classes:
+
+| Event | Meaning |
+|-------|---------|
+| `ok` | Initialize + tools/list succeeded (tier 2) |
+| `version_poll` | Tier-1 upstream version poll succeeded |
+| `unpollable` | Package registry type has no version API (oci/mcpb/…) — **tier 1 only** |
+| `install_failed` | Fetch-phase `npm`/`pip` install returned non-zero |
+| `entrypoint_unresolved` | Install succeeded; no runnable bin/console script |
+| `credentials_required` | Process exited citing missing API key/token/env — permanently unobservable |
+| `network_required_at_runtime` | Needs outbound network at startup; deny-all jail correctly blocks it |
+| `runtime_incompatible` | Node/Python engine or version mismatch |
+| `package_broken` | Import/syntax/missing-module failure in a published package |
+| `usage_misconfigured` | Prints CLI usage / wrong entry after `packageArguments` / `runtimeArguments` applied |
+| `silent_exit` | Exits 0 with empty stderr without speaking MCP |
+| `exec_failed` | Target process could not start (still unexplained after matchers) |
+| `containment_failed` | Jail itself failed or leaked — rare; treat as a stop |
+| `departed` | Frozen cohort member no longer in the registry |
+| `auth_required` | HTTP 401 or 403 |
+| `endpoint_404` | HTTP 404, or 400 with a body indicating no such route |
+| `dns_failure` | Name resolution failed |
+| `tls_failure` | TLS handshake or certificate validation failed |
+| `http_error` | Any other non-2xx HTTP status (status recorded) |
+| `protocol_error` | Transport succeeded; MCP handshake did not |
+| `malformed` | Valid transport; invalid JSON-RPC |
+| `timeout` | Deadline exceeded |
+| `refused` | Connection refused, or no dialable target in the spec |
+| `too_large` | Response exceeded size cap |
+| `opt_out` | Server opted out; not contacted |
+
+Deprecated (historical rows only — do not emit): `sandbox_error`, `fetch_error`,
+`transport_error`.
+
+Streamable HTTP probes (when `--include-remotes`) **POST** initialize first.
 
 ## What we never collect
 
@@ -33,16 +145,20 @@ Canonical hashes of tool metadata are appended to an append-only Merkle log.
 ## How we crawl
 
 - Pagination over the registry API with a **persisted cursor** so a crash resumes
-  rather than restarting.
-- At most **4 concurrent** probes, with a polite delay between registry page fetches.
+  rather than restarting (covers both tiers).
+- Tier 1: at most **8 concurrent** version polls; polite delay between registry
+  page fetches.
+- Tier 2: at most **4 concurrent** sandboxed spawns.
 - User-Agent:
   `PlumblineCrawler/0.1 (+https://github.com/GautamTalksDev/Plumbline/blob/main/docs/CRAWLING.md)`
-- Local/package execution (when used) runs only inside a sandbox: non-root,
-  read-only rootfs, no host path mounts, default-deny network, memory ≤512 MiB,
-  CPU capped, 60s wall clock then SIGKILL, ephemeral (no container reuse).
+- Local/package execution runs only inside a sandbox: non-root, read-only
+  rootfs, no host path mounts, default-deny network after fetch, memory
+  ≤512 MiB, CPU capped, 60s wall clock then SIGKILL, ephemeral.
 - Stdio/package probes use Docker/Podman when the daemon is available, otherwise
   `unshare` + `plumbline-jail` (pivot_root). Install the helper with
   `go install ./cmd/plumbline-jail` (or set `PLUMBLINE_JAIL_HELPER`).
+- Weekly runs are driven by **systemd** (`ops/systemd/plumbline-crawl.timer`),
+  not `nohup`.
 
 ## Opt out (honoured within 24 hours)
 

@@ -1,0 +1,108 @@
+# Plumbline spawn-failure matchers v1
+# Format: event_class | substring
+# Case-insensitive substring match against captured stderr (tail, ≤2KB).
+# First match wins; order is deliberate — credentials before broader patterns.
+# Conservative: when in doubt, leave as exec_failed (do not list a matcher).
+# Never put free-form server text into diagnostic strings; matchers only select
+# a fixed event class.
+
+# credentials_required — permanently unobservable without secrets / local config
+credentials_required | api key
+credentials_required | api_key
+credentials_required | apikey
+credentials_required | api token
+credentials_required | api_token
+credentials_required | access token
+credentials_required | access_token
+credentials_required | auth token
+credentials_required | bearer token
+credentials_required | environment variable is required
+credentials_required | environment variable is not set
+credentials_required | environment variable not set
+credentials_required | env var
+credentials_required | missing required
+credentials_required | required when running
+credentials_required | set it as
+credentials_required | SYMBIOTIC_API
+credentials_required | SYNCPEN_API
+credentials_required | OPENAI_API
+credentials_required | ANTHROPIC_API
+credentials_required | requires authentication
+credentials_required | not authorized
+credentials_required | unauthorized
+credentials_required | license_key
+credentials_required | license key
+credentials_required | subscribe at
+credentials_required | --config is required
+credentials_required | no config
+credentials_required | pass --config
+credentials_required | is not set
+credentials_required | must be set
+credentials_required | please set
+credentials_required | local setup not found
+credentials_required | 환경 변수
+credentials_required | 서비스키
+credentials_required | AZURE_IOT_HUB
+credentials_required | ABAPILOT_URL
+
+credentials_required | renseignez
+credentials_required | identifiants
+credentials_required | coda token is required
+credentials_required | coda_api_token
+usage_misconfigured | specify one of --stdio
+usage_misconfigured | specify one of --url
+package_broken | could not locate the bindings
+package_broken | bindings file
+
+# network_required_at_runtime — needs outbound net at startup (deny-all jail)
+# Avoid bare "enotfound" — it matches inside ModuleNotFoundError.
+network_required_at_runtime | eai_again
+network_required_at_runtime | econnrefused
+network_required_at_runtime | getaddrinfo
+network_required_at_runtime | fetch failed
+network_required_at_runtime | downloading https://
+network_required_at_runtime | downloading http://
+network_required_at_runtime | error downloading binary
+network_required_at_runtime | backend at http
+network_required_at_runtime | is unreachable
+network_required_at_runtime | code: 'enotfound'
+network_required_at_runtime | code: "enotfound"
+
+# usage_misconfigured — prints CLI usage / wrong entry despite argv from server.json
+usage_misconfigured | usage:
+usage_misconfigured | try '
+usage_misconfigured | for help
+usage_misconfigured | unknown command
+usage_misconfigured | missing argument
+usage_misconfigured | required argument
+usage_misconfigured | no such option
+usage_misconfigured | clierror
+
+# runtime_incompatible — engine / language version
+runtime_incompatible | ebadengine
+runtime_incompatible | unsupported engine
+runtime_incompatible | requires node
+runtime_incompatible | requires python
+runtime_incompatible | invalid regular expression flags
+runtime_incompatible | syntaxerror: invalid regular expression
+runtime_incompatible | cannot use import statement outside a module
+runtime_incompatible | crypto is not defined
+runtime_incompatible | file is not defined
+runtime_incompatible | err_require_esm
+runtime_incompatible | unknown file extension ".ts"
+
+# package_broken — published package does not run
+package_broken | modulenotfounderror
+package_broken | no module named
+package_broken | cannot find module
+package_broken | err_module_not_found
+package_broken | syntaxerror:
+package_broken | unexpected token
+package_broken | is not a function
+package_broken | cannot find package
+package_broken | binary is missing
+package_broken | could not locate the bindings
+package_broken | runtime is missing or incomplete
+package_broken | importerror:
+package_broken | has no attribute 'list_tools'
+package_broken | attributeerror: 'server' object

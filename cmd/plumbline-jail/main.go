@@ -62,6 +62,21 @@ func setupJail(root string) error {
 	if err := syscall.Mount("tmpfs", filepath.Join(root, "dev"), "tmpfs", 0, ""); err != nil {
 		return fmt.Errorf("dev tmpfs: %w", err)
 	}
+	for _, n := range []string{"null", "zero", "urandom", "random"} {
+		src := filepath.Join("/dev", n)
+		dst := filepath.Join(root, "dev", n)
+		if _, err := os.Stat(src); err != nil {
+			continue
+		}
+		f, err := os.OpenFile(dst, os.O_CREATE, 0o666)
+		if err != nil {
+			return fmt.Errorf("dev node %s: %w", n, err)
+		}
+		_ = f.Close()
+		if err := syscall.Mount(src, dst, "", syscall.MS_BIND, ""); err != nil {
+			return fmt.Errorf("bind %s: %w", src, err)
+		}
+	}
 
 	oldwd, err := os.Getwd()
 	if err != nil {

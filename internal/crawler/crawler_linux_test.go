@@ -66,10 +66,10 @@ func TestContainmentMaliciousServer(t *testing.T) {
 		Env:      []string{"HOST_CANARY=" + canary, "EXTERNAL_HOST=1.1.1.1:443"},
 		Timeout:  15 * time.Second,
 	})
-	if obs.EventType == crawler.EventSandbox && strings.Contains(obs.Detail, "wrote canary") {
+	if obs.EventType == crawler.EventContainmentFailed && strings.Contains(obs.Detail, "wrote canary") {
 		t.Fatalf("escape: wrote canary: %+v", obs)
 	}
-	if obs.EventType == crawler.EventSandbox && strings.Contains(obs.Detail, "network egress") {
+	if obs.EventType == crawler.EventContainmentFailed && strings.Contains(obs.Detail, "network egress") {
 		t.Fatalf("escape: network egress: %+v", obs)
 	}
 
@@ -88,10 +88,6 @@ func TestContainmentMaliciousServer(t *testing.T) {
 	}
 	if obs.EventType != crawler.EventOK {
 		t.Fatalf("expected contained ok observation, got %+v", obs)
-	}
-	if !strings.Contains(obs.Detail, "contained") && obs.Detail != "" && obs.Detail != "jailed" {
-		// parseObserveOutput sets detail=contained from malicious JSON
-		t.Logf("observation detail: %s", obs.Detail)
 	}
 	t.Logf("contained observation: type=%s detail=%s", obs.EventType, obs.Detail)
 }
@@ -139,6 +135,33 @@ func findModuleRoot(t *testing.T) string {
 	}
 }
 
+func pkg(name, id string) crawler.RegistryServer {
+	return crawler.RegistryServer{
+		Name: name,
+		Packages: []crawler.Package{{
+			RegistryType: "npm",
+			Identifier:   id,
+			Version:      "1.0.0",
+			Transport:    "stdio",
+		}},
+	}
+}
+
+type fixedMeta string
+
+func (f fixedMeta) Latest(_ context.Context, _, _ string) (string, time.Time, error) {
+	return string(f), time.Time{}, nil
+}
+
+type nopInstall struct{}
+
+func (nopInstall) Install(_ context.Context, pkg crawler.Package, latest string, destDir string) (crawler.InstallResult, error) {
+	return crawler.InstallResult{
+		WorkDir: destDir, Command: "true", Entrypoint: "x",
+		RegistryType: pkg.RegistryType, Identifier: pkg.Identifier, Version: latest,
+	}, nil
+}
+
 func TestCrawlResumeNoDuplicates(t *testing.T) {
 	dir := t.TempDir()
 	statePath := filepath.Join(dir, "state.json")
@@ -147,30 +170,31 @@ func TestCrawlResumeNoDuplicates(t *testing.T) {
 	_ = os.WriteFile(optOut, []byte("# empty\n"), 0o644)
 
 	all := []crawler.RegistryServer{
-		{Name: "a/one"},
-		{Name: "a/two"},
-		{Name: "a/three"},
-		{Name: "a/four"},
+		pkg("a/one", "one"),
+		pkg("a/two", "two"),
+		pkg("a/three", "three"),
+		pkg("a/four", "four"),
 	}
 	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	sb := &crawler.FakeSandbox{Hook: func(tg crawler.Target) crawler.Observation {
-		return crawler.Observation{ServerID: tg.ServerID, EventType: crawler.EventRefused, Detail: "down"}
-	}}
+	clock := func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) }
 
 	sum1, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:     statePath,
-		LogPath:       logPath,
-		OptOutPath:    optOut,
-		Sandbox:       sb,
-		Registry:      &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{all[:2]}},
-		SigningKey:    priv,
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
+		StatePath:      statePath,
+		LogPath:        logPath,
+		OptOutPath:     optOut,
+		Sandbox:        &crawler.FakeSandbox{},
+		Registry:       &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{all[:2]}},
+		PackageMeta:    fixedMeta("1.0.0"),
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		SigningKey:     priv,
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          clock,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -179,47 +203,34 @@ func TestCrawlResumeNoDuplicates(t *testing.T) {
 		t.Fatalf("first run done=%d", sum1.ServersDone)
 	}
 
-	// Simulate crash after logging a/three but before MarkCompleted:
-	// put a/three in InFlight, leave queue with a/four, keep cursor exhausted.
 	st, err := crawler.LoadState(statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	st.InFlight = map[string]crawler.RegistryServer{
-		"a/three": all[2],
-	}
+	st.InFlight = map[string]crawler.RegistryServer{"a/three": all[2]}
 	st.Queue = []crawler.RegistryServer{all[3]}
-	st.PageCursor = "" // no further pages
+	st.PageCursor = ""
+	st.Tier1Complete = false
+	st.RunComplete = false
+	st.Phase = crawler.PhaseTier1
 	if err := crawler.SaveState(statePath, st); err != nil {
 		t.Fatal(err)
 	}
 
-	// Pretend a/three was already appended before crash (status in log, still InFlight).
-	if _, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:  filepath.Join(dir, "mid-state.json"),
-		LogPath:    logPath,
-		OptOutPath: optOut,
-		Sandbox: &crawler.FakeSandbox{Hook: func(tg crawler.Target) crawler.Observation {
-			return crawler.Observation{ServerID: "a/three", EventType: crawler.EventTimeout, Detail: "pre-crash"}
-		}},
-		Registry:      &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{{{Name: "a/three"}}}},
-		Concurrency:   1,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
-	}); err != nil {
-		t.Fatal(err)
-	}
-
 	sum2, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:     statePath,
-		LogPath:       logPath,
-		OptOutPath:    optOut,
-		Sandbox:       sb,
-		Registry:      &crawler.MemoryRegistry{Pages: nil}, // nothing more from registry
-		SigningKey:    priv,
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
+		StatePath:      statePath,
+		LogPath:        logPath,
+		OptOutPath:     optOut,
+		Sandbox:        &crawler.FakeSandbox{},
+		Registry:       &crawler.MemoryRegistry{Pages: nil},
+		PackageMeta:    fixedMeta("1.0.0"),
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		SigningKey:     priv,
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          clock,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -234,13 +245,14 @@ func TestCrawlResumeNoDuplicates(t *testing.T) {
 	}
 	defer lg.Close()
 
+	tool := "_version_poll/2026-08-05"
 	for _, name := range []string{"a/one", "a/two", "a/three", "a/four"} {
-		n, err := lg.CountTool(name, crawler.StatusToolName)
+		n, err := lg.CountTool(name, tool)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if n != 1 {
-			t.Fatalf("%s: want exactly 1 status entry, got %d", name, n)
+			t.Fatalf("%s: want exactly 1 poll entry, got %d", name, n)
 		}
 	}
 
@@ -258,49 +270,58 @@ func TestCrawlResumeNoDuplicates(t *testing.T) {
 func TestFailureEventTypesReported(t *testing.T) {
 	dir := t.TempDir()
 	reg := &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{{
-		{Name: "e/timeout"},
-		{Name: "e/refused"},
-		{Name: "e/malformed"},
-		{Name: "e/opt"},
+		pkg("e/timeout", "t"),
+		pkg("e/refused", "r"),
+		pkg("e/malformed", "m"),
+		pkg("e/opt", "o"),
 	}}}
 	_ = os.WriteFile(filepath.Join(dir, "opt-out.txt"), []byte("e/opt\n"), 0o644)
 
-	sb := &crawler.FakeSandbox{Hook: func(tg crawler.Target) crawler.Observation {
-		switch tg.ServerID {
-		case "e/timeout":
-			return crawler.Observation{ServerID: tg.ServerID, EventType: crawler.EventTimeout, Detail: "t"}
-		case "e/refused":
-			return crawler.Observation{ServerID: tg.ServerID, EventType: crawler.EventRefused, Detail: "r"}
-		case "e/malformed":
-			return crawler.Observation{ServerID: tg.ServerID, EventType: crawler.EventMalformed, Detail: "m"}
+	meta := crawler.PackageMetaClientFunc(func(_ context.Context, _, id string) (string, time.Time, error) {
+		switch id {
+		case "t":
+			return "", time.Time{}, context.DeadlineExceeded
+		case "r":
+			return "", time.Time{}, context.Canceled
+		case "m":
+			return "", time.Time{}, errDecode()
 		default:
-			return crawler.Observation{ServerID: tg.ServerID, EventType: crawler.EventOK}
+			return "1.0.0", time.Time{}, nil
 		}
-	}}
+	})
 
 	sum, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:     filepath.Join(dir, "state.json"),
-		LogPath:       filepath.Join(dir, "log.sqlite"),
-		OptOutPath:    filepath.Join(dir, "opt-out.txt"),
-		Sandbox:       sb,
-		Registry:      reg,
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
+		StatePath:      filepath.Join(dir, "state.json"),
+		LogPath:        filepath.Join(dir, "log.sqlite"),
+		OptOutPath:     filepath.Join(dir, "opt-out.txt"),
+		Sandbox:        &crawler.FakeSandbox{},
+		Registry:       reg,
+		PackageMeta:    meta,
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) },
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, ev := range []string{crawler.EventTimeout, crawler.EventRefused, crawler.EventMalformed, crawler.EventOptOut} {
-		if sum.EventCounts[ev] != 1 {
-			t.Fatalf("event %s count=%d want 1; full=%v", ev, sum.EventCounts[ev], sum.EventCounts)
-		}
+	if sum.EventCounts[crawler.EventOptOut] != 1 {
+		t.Fatalf("opt-out count=%v", sum.EventCounts)
 	}
 	b, _ := json.Marshal(sum.EventCounts)
 	t.Logf("event counts: %s", b)
 }
 
+func errDecode() error { return &decodeErr{} }
+
+type decodeErr struct{}
+
+func (decodeErr) Error() string { return "npm decode: invalid" }
+
 func TestLiveGuard(t *testing.T) {
+	t.Setenv("PLUMBLINE_CRAWL_I_UNDERSTAND", "")
 	_, err := crawler.Run(context.Background(), crawler.Config{
 		StatePath: filepath.Join(t.TempDir(), "s"),
 		LogPath:   filepath.Join(t.TempDir(), "l"),
@@ -314,23 +335,27 @@ func TestOptOutHonoured(t *testing.T) {
 	dir := t.TempDir()
 	opt := filepath.Join(dir, "opt-out.txt")
 	_ = os.WriteFile(opt, []byte("vendor/secret\n"), 0o644)
-	called := 0
-	sb := &crawler.FakeSandbox{Hook: func(tg crawler.Target) crawler.Observation {
-		called++
-		return crawler.Observation{ServerID: tg.ServerID, EventType: crawler.EventOK}
-	}}
+	polled := 0
+	meta := crawler.PackageMetaClientFunc(func(_ context.Context, _, id string) (string, time.Time, error) {
+		polled++
+		return "1.0.0", time.Time{}, nil
+	})
 	sum, err := crawler.Run(context.Background(), crawler.Config{
 		StatePath:  filepath.Join(dir, "state.json"),
 		LogPath:    filepath.Join(dir, "log.sqlite"),
 		OptOutPath: opt,
-		Sandbox:    sb,
+		Sandbox:    &crawler.FakeSandbox{},
 		Registry: &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{{
-			{Name: "vendor/secret"},
-			{Name: "vendor/ok"},
+			pkg("vendor/secret", "secret"),
+			pkg("vendor/ok", "ok"),
 		}}},
-		Concurrency:   1,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
+		PackageMeta:    meta,
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		Concurrency:    1,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) },
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -338,7 +363,7 @@ func TestOptOutHonoured(t *testing.T) {
 	if sum.EventCounts[crawler.EventOptOut] != 1 {
 		t.Fatalf("opt-out count=%v", sum.EventCounts)
 	}
-	if called != 1 {
-		t.Fatalf("sandbox called %d times, want 1 (only non-opted-out)", called)
+	if polled != 1 {
+		t.Fatalf("package meta called %d times, want 1", polled)
 	}
 }

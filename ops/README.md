@@ -9,7 +9,12 @@ Deferred product ideas go in [`../IDEAS.md`](../IDEAS.md) and stay closed.
 
 Accumulate a public Merkle log and a hand-labelled ground-truth set so
 KT-1 and KT-2 can be scored with real numbers after six consecutive
-weekly crawls with signed checkpoints.
+**complete** weekly crawls with signed checkpoints. Incomplete runs
+(`summary.json` → `complete: false`) do not count toward the series.
+
+The weekly crawl is two-tier (packages population only): version poll,
+then targeted spawn for version changes ∪ control cohort. See
+[`docs/CRAWLING.md`](../docs/CRAWLING.md) and [`docs/COHORT.md`](../docs/COHORT.md).
 
 ## Weekly rhythm
 
@@ -40,22 +45,39 @@ Environment file (not committed): `~/.plumbline/crawl.env`
 PLUMBLINE_CRAWL_I_UNDERSTAND=1
 PLUMBLINE_HOME=/home/YOU/.plumbline
 PLUMBLINE_REPO=/path/to/Plumbline
+# Signing key stays off the crawl box (default). After each complete run:
+#   plumb sign-checkpoint --log ~/.plumbline/crawl-log.sqlite \
+#     --signing-key ~/plumbline-offline/signing.ed25519 \
+#     --out lab/runs/YYYY-MM-DD/checkpoint.json
+# Or set PLUMBLINE_SIGNING_KEY_OFFLINE to that path and let the weekly script
+# sign once at the end (still not co-resident during package execution if you
+# only mount the key after the crawl exits — preferred).
+PLUMBLINE_DEFER_SIGN=1
 ```
 
-### GitHub Actions cron (optional backup)
+### Signing key separation
 
-See [`.github/workflows/crawl-weekly.yml`](../.github/workflows/crawl-weekly.yml).
-Requires secrets (`PLUMBLINE_SIGNING_KEY`, etc.) and a Linux runner that may
-contact the public registry. Prefer systemd on a dedicated operator host;
-Actions is a backup, not the source of truth for the six-week series.
+The machine that executes 479 strangers' packages must not hold the log
+signing private key during the crawl. Default weekly script uses
+`--defer-sign`. Keep `signing.ed25519` under `~/plumbline-offline/` (or a
+hardware token / other host) and run `plumb sign-checkpoint` after each
+complete run. Only the public key remains in-repo
+(`docs/log-public-key.ed25519`) and as `~/.plumbline/signing.ed25519.pub`.
+
+### Crawl host only (no GitHub Actions crawl)
+
+Weekly crawl runs on the operator Linux host via systemd. There is **no**
+GitHub Actions crawl workflow: a public (or even private) Actions job that
+installs and executes arbitrary npm/PyPI packages on hosted runners is out
+of scope. Do not re-add one.
 
 ## Monitoring (per run)
 
 Recorded under `lab/runs/<date>/`:
 
-- `summary.json` — servers seen/done, event counts, duration, checkpoint
+- `summary.json` — atomic write: run id, complete flag, event counts, remotes excluded, duration, checkpoint
 - `monitor.txt` — failure rate by type, duration, appear/disappear deltas vs prior run
-- `checkpoint.json` — signed tree head copy
+- `checkpoint.json` — signed tree head copy (complete runs only)
 
 ## Hand labels (KT-2 evidence)
 

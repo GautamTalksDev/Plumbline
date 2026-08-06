@@ -10,33 +10,33 @@ import (
 // stranger binaries. Only public tool metadata is fetched.
 func observeHTTPAllowlisted(ctx context.Context, t Target) Observation {
 	if t.URL == "" {
-		return Observation{ServerID: t.ServerID, EventType: EventRefused, Detail: "no URL"}
+		return observationFromClassified(t.ServerID, Classified{
+			Event: EventRefused, Diagnostic: DiagNoTarget,
+		})
 	}
 	if t.AllowHost == "" {
-		return Observation{ServerID: t.ServerID, EventType: EventSandbox, Detail: "AllowHost required"}
+		return observationFromClassified(t.ServerID, Classified{
+			Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed,
+		})
 	}
 	sess, err := mcpclient.Connect(ctx, mcpclient.ServerSpec{
 		Transport: mcpclient.TransportHTTP,
 		URL:       t.URL,
 	})
 	if err != nil {
-		ev, detail := MapEvent(err)
-		return Observation{ServerID: t.ServerID, EventType: ev, Detail: detail}
+		return observationFromClassified(t.ServerID, Classify(err))
 	}
 	defer sess.Close()
 	list, err := sess.ListTools(ctx)
 	if err != nil {
-		ev, detail := MapEvent(err)
-		return Observation{ServerID: t.ServerID, EventType: ev, Detail: detail}
+		return observationFromClassified(t.ServerID, Classify(err))
 	}
 	pv := list.ProtocolVersion
 	if pv == "" {
 		pv = sess.ProtocolVersion
 	}
-	return Observation{
-		ServerID:        t.ServerID,
-		EventType:       EventOK,
-		ProtocolVersion: pv,
-		Tools:           list.Tools,
-	}
+	obs := observationFromClassified(t.ServerID, Classified{Event: EventOK, Diagnostic: DiagOK})
+	obs.ProtocolVersion = pv
+	obs.Tools = list.Tools
+	return obs
 }

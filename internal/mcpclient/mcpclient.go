@@ -28,11 +28,11 @@ const (
 
 // Sentinel errors recorded as log events. Use errors.Is.
 var (
-	ErrTimeout    = errors.New("mcpclient: timeout")
-	ErrTooLarge   = errors.New("mcpclient: response too large")
-	ErrMalformed  = errors.New("mcpclient: malformed JSON")
-	ErrTransport  = errors.New("mcpclient: transport error")
-	ErrProtocol   = errors.New("mcpclient: protocol error")
+	ErrTimeout   = errors.New("mcpclient: timeout")
+	ErrTooLarge  = errors.New("mcpclient: response too large")
+	ErrMalformed = errors.New("mcpclient: malformed JSON")
+	ErrTransport = errors.New("mcpclient: transport error")
+	ErrProtocol  = errors.New("mcpclient: protocol error")
 )
 
 // Transport names for ServerSpec.Transport.
@@ -224,13 +224,18 @@ func mapContextError(err error) error {
 	if err == nil {
 		return nil
 	}
+	var se *StatusError
+	if errors.As(err, &se) {
+		return err
+	}
 	if errors.Is(err, ErrTimeout) || errors.Is(err, ErrTooLarge) ||
 		errors.Is(err, ErrMalformed) || errors.Is(err, ErrTransport) ||
-		errors.Is(err, ErrProtocol) {
+		errors.Is(err, ErrProtocol) || errors.Is(err, ErrDNS) ||
+		errors.Is(err, ErrTLS) || errors.Is(err, ErrRefused) {
 		return err
 	}
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return fmt.Errorf("%w: %v", ErrTimeout, err)
+		return fmt.Errorf("%w", ErrTimeout)
 	}
 	return err
 }

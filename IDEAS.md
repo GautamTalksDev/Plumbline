@@ -50,3 +50,12 @@ Each entry is a reminder that shipping evidence beats shipping surface area.
 
 When Phase E ends and kill tests are scored, reopen this file deliberately —
 not because an idea felt urgent in week two.
+
+16. **Retrospective: CP-8 DoD tested containment, not observation.** Week-0
+    dry runs found five self-inflicted crawler bugs (archive-as-argv0, missing
+    install, PyPI entrypoint first-dist-info, discarded stderr, exit_code
+    omitempty / EOF race) by hand probe, not by checkpoint tests. Containment
+    was green while the crawler could not actually observe. Next checkpoint:
+    DoD must include an ordinary successful spawn that returns tools *and* a
+    failing spawn that records both stderr and exit status — not only the
+    scary isolation property.
