@@ -49,7 +49,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "plumbd: open log: %v\n", err)
 		os.Exit(2)
 	}
-	defer lg.Close()
+	defer func() { _ = lg.Close() }()
 
 	cfg := httpserver.Config{
 		Log:      lg,

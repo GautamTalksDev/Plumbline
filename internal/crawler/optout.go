@@ -26,7 +26,7 @@ func LoadOptOut(path string) (*OptOutList, error) {
 		}
 		return nil, fmt.Errorf("crawler: opt-out: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())

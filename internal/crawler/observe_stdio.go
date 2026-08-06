@@ -26,7 +26,7 @@ func observeStdioMCP(ctx context.Context, serverID, command string, args, env []
 	if err != nil {
 		return observationFromSpawnErr(serverID, err)
 	}
-	defer sess.Close()
+	defer func() { _ = sess.Close() }()
 	list, err := sess.ListTools(ctx)
 	if err != nil {
 		return observationFromSpawnErr(serverID, err)
@@ -126,12 +126,12 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 	if _, err := io.Copy(out, in); err != nil {
 		return err
 	}

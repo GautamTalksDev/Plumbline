@@ -229,7 +229,7 @@ type MemoryRegistry struct {
 func (m *MemoryRegistry) ListServers(_ context.Context, cursor string, _ int) ([]RegistryServer, string, error) {
 	idx := 0
 	if cursor != "" {
-		fmt.Sscanf(cursor, "%d", &idx)
+		_, _ = fmt.Sscanf(cursor, "%d", &idx)
 	}
 	if idx >= len(m.Pages) {
 		return nil, "", nil

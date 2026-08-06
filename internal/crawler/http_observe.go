@@ -26,7 +26,7 @@ func observeHTTPAllowlisted(ctx context.Context, t Target) Observation {
 	if err != nil {
 		return observationFromClassified(t.ServerID, Classify(err))
 	}
-	defer sess.Close()
+	defer func() { _ = sess.Close() }()
 	list, err := sess.ListTools(ctx)
 	if err != nil {
 		return observationFromClassified(t.ServerID, Classify(err))

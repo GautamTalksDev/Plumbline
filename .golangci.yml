@@ -21,6 +21,18 @@ linters-settings:
       - fieldalignment
   gosec:
     excludes: []
+  errcheck:
+    exclude-functions:
+      # Deferred closes on readers and response bodies: a failed close on a
+      # read path cannot lose data. Writes are checked explicitly.
+      - (io.Closer).Close
+      - (*database/sql.Rows).Close
+      # Terminal output; a failed write to stdout is not actionable.
+      - fmt.Fprintf
+      - fmt.Fprintln
+      - fmt.Fprint
+      # Cleanup of temp dirs we created; failure is not actionable.
+      - os.RemoveAll
 
 issues:
   exclude-use-default: false
@@ -31,3 +43,4 @@ issues:
     - path: _test\.go
       linters:
         - gosec
+        - errcheck
