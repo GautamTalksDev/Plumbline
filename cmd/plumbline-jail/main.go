@@ -24,7 +24,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "jail setup: %v\n", err)
 		os.Exit(3)
 	}
-	if err := syscall.Exec(target, args, os.Environ()); err != nil {
+	if err := syscall.Exec(target, args, os.Environ()); err != nil { //nolint:gosec // G204 -- argv is the jailed entrypoint after pivot_root
 		fmt.Fprintf(os.Stderr, "exec: %v\n", err)
 		os.Exit(4)
 	}
@@ -35,7 +35,7 @@ func setupJail(root string) error {
 		return fmt.Errorf("bind root: %w", err)
 	}
 	for _, d := range []string{"bin", "lib", "lib64", "usr", "proc", "tmp", "oldroot", "dev", "etc"} {
-		if err := os.MkdirAll(filepath.Join(root, d), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, d), 0o755); err != nil { //nolint:gosec // G301 -- ephemeral jail mount points, not secrets
 			return err
 		}
 	}
@@ -68,7 +68,7 @@ func setupJail(root string) error {
 		if _, err := os.Stat(src); err != nil {
 			continue
 		}
-		f, err := os.OpenFile(dst, os.O_CREATE, 0o666)
+		f, err := os.OpenFile(dst, os.O_CREATE, 0o600) //nolint:gosec // G304 -- dst is under the jail root we just created
 		if err != nil {
 			return fmt.Errorf("dev node %s: %w", n, err)
 		}
@@ -110,7 +110,7 @@ func bindRO(src, dst string) error {
 }
 
 func rbind(src, dst string) error {
-	if err := os.MkdirAll(dst, 0o755); err != nil {
+	if err := os.MkdirAll(dst, 0o755); err != nil { //nolint:gosec // G301 -- ephemeral jail mount points, not secrets
 		return err
 	}
 	if err := syscall.Mount(src, dst, "", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {

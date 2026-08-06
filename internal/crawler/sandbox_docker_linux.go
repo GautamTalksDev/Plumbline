@@ -145,7 +145,7 @@ func (d *DockerSandbox) observeHelperJSON(ctx context.Context, t Target) Observa
 	)
 	args = append(args, t.Args...)
 
-	cmd := exec.CommandContext(ctx, d.Engine, args...)
+	cmd := exec.CommandContext(ctx, d.Engine, args...) //nolint:gosec // G204 -- docker/podman run of sandboxed observe; argv built by this sandbox
 	bin, err := os.ReadFile(t.Command)
 	if err != nil {
 		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})

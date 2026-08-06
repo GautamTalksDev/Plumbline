@@ -66,10 +66,10 @@ Writes the checkpoint JSON to --out (default: stdout / lab run folder when set).
 				_, err = cmd.OutOrStdout().Write(b)
 				return err
 			}
-			if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil { //nolint:gosec // G301 -- public checkpoint artifact directory
 				return err
 			}
-			return os.WriteFile(outPath, b, 0o644)
+			return os.WriteFile(outPath, b, 0o644) //nolint:gosec // G306 -- public checkpoint JSON, world-readable by design
 		},
 	}
 	cmd.Flags().StringVar(&logPath, "log", "", "Merkle log sqlite (default ~/.plumbline/crawl-log.sqlite)")

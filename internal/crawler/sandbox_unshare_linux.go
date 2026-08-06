@@ -60,7 +60,7 @@ func (u *UnshareSandbox) observeMCP(ctx context.Context, t Target) Observation {
 	defer os.RemoveAll(jailDir)
 
 	root := filepath.Join(jailDir, "root")
-	if err := os.MkdirAll(root, 0o755); err != nil {
+	if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // G301 -- ephemeral jail rootfs directory
 		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 	workDst := filepath.Join(root, "work")
@@ -112,16 +112,17 @@ func (u *UnshareSandbox) observeHelperJSON(ctx context.Context, t Target) Observ
 	defer os.RemoveAll(jailDir)
 
 	root := filepath.Join(jailDir, "root")
-	if err := os.MkdirAll(root, 0o755); err != nil {
+	if err := os.MkdirAll(root, 0o755); err != nil { //nolint:gosec // G301 -- ephemeral jail rootfs directory
 		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 	// Place target outside /tmp so the jail's tmpfs does not wipe it.
 	target := filepath.Join(root, "observe")
-	bin, err := os.ReadFile(t.Command)
+	bin, err := os.ReadFile(t.Command) //nolint:gosec // G304 -- host observe helper path resolved by this process
 	if err != nil {
 		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
 	}
-	if err := os.WriteFile(target, bin, 0o755); err != nil {
+	// Owner-only executable inside ephemeral jail; 0600 would strip +x.
+	if err := os.WriteFile(target, bin, 0o700); err != nil { //nolint:gosec // G306 -- owner-only +x in ephemeral jail rootfs
 		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 
@@ -133,7 +134,7 @@ func (u *UnshareSandbox) observeHelperJSON(ctx context.Context, t Target) Observ
 	}
 	args = append(args, t.Args...)
 
-	cmd := exec.CommandContext(ctx, "unshare", args...)
+	cmd := exec.CommandContext(ctx, "unshare", args...) //nolint:gosec // G204 -- unshare+jail helper; argv built by this sandbox
 	cmd.Env = append([]string{"PATH=/usr/bin:/bin", "HOME=/tmp", "TMPDIR=/tmp"}, t.Env...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

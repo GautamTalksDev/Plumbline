@@ -19,7 +19,7 @@ func LoadOptOut(path string) (*OptOutList, error) {
 	if path == "" {
 		return out, nil
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // G304 -- operator-supplied opt-out list path
 	if err != nil {
 		if os.IsNotExist(err) {
 			return out, nil

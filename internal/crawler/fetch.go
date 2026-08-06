@@ -191,7 +191,7 @@ func downloadFile(ctx context.Context, client *http.Client, ua, rawURL, dest str
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("download HTTP %d", resp.StatusCode)
 	}
-	f, err := os.Create(dest)
+	f, err := os.Create(dest) //nolint:gosec // G304 -- dest is under the install workdir we created
 	if err != nil {
 		return err
 	}

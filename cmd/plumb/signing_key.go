@@ -7,7 +7,7 @@ import (
 )
 
 func loadSigningKey(path string) (ed25519.PrivateKey, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // G304 -- operator-supplied offline signing key path
 	if err != nil {
 		return nil, fmt.Errorf("signing key %s: %w (run scripts/gen-signing-key.sh)", path, err)
 	}

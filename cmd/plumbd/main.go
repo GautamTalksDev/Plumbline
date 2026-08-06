@@ -82,7 +82,7 @@ func main() {
 }
 
 func loadPub(path string) (ed25519.PublicKey, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // G304 -- operator-supplied Ed25519 public key path
 	if err != nil {
 		return nil, err
 	}

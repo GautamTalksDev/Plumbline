@@ -70,7 +70,7 @@ type State struct {
 
 // LoadState reads crawl state from path, or returns empty state.
 func LoadState(path string) (*State, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // G304 -- operator crawl-state path from config
 	if err != nil {
 		if os.IsNotExist(err) {
 			return newEmptyState(), nil
@@ -135,7 +135,7 @@ func saveStateLocked(path string, st *State) error {
 	}
 	b = append(b, '\n')
 	tmp := path + ".tmp"
-	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // G304 -- atomic write of operator crawl-state temp file
 	if err != nil {
 		return err
 	}

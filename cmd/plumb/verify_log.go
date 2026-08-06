@@ -49,7 +49,7 @@ Exit codes:
 				}
 				pub = b
 			} else if pubPath != "" {
-				b, err := os.ReadFile(pubPath)
+				b, err := os.ReadFile(pubPath) //nolint:gosec // G304 -- operator-supplied Ed25519 public key path
 				if err != nil {
 					return err
 				}
@@ -69,7 +69,7 @@ Exit codes:
 				// Try local default; else verify will fetch /pubkey from endpoint.
 				home, _ := os.UserHomeDir()
 				p := filepath.Join(home, ".plumbline", "signing.ed25519.pub")
-				if b, err := os.ReadFile(p); err == nil {
+				if b, err := os.ReadFile(p); err == nil { //nolint:gosec // G304 -- default pubkey under ~/.plumbline
 					b = []byte(strings.TrimSpace(string(b)))
 					if len(b) == ed25519.PublicKeySize {
 						pub = b

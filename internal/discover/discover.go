@@ -116,7 +116,7 @@ type serverEntry struct {
 }
 
 func parseFile(path string) ([]Server, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // G304 -- MCP client config path from well-known local locations
 	if err != nil {
 		return nil, err
 	}

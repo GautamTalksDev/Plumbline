@@ -103,7 +103,7 @@ func (i *CLIPackageInstaller) installNPM(ctx context.Context, identifier, versio
 	}
 	// --ignore-scripts is mandatory: lifecycle scripts run stranger code
 	// during the network-open window.
-	cmd := exec.CommandContext(ctx, i.npmBin(),
+	cmd := exec.CommandContext(ctx, i.npmBin(), //nolint:gosec // G204 -- npm install of a registry identifier during fetch; --ignore-scripts mandatory
 		"install", "--prefix", destDir,
 		"--ignore-scripts",
 		"--no-fund",
@@ -171,7 +171,7 @@ func readPackageName(dirOrTgz string) (string, error) {
 		}
 		return base, nil
 	}
-	raw, err := os.ReadFile(filepath.Join(dirOrTgz, "package.json"))
+	raw, err := os.ReadFile(filepath.Join(dirOrTgz, "package.json")) //nolint:gosec // G304 -- path under install prefix we control
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +192,7 @@ func (i *CLIPackageInstaller) installPyPI(ctx context.Context, identifier, versi
 	if version != "" {
 		spec = identifier + "==" + version
 	}
-	cmd := exec.CommandContext(ctx, i.pipBin(),
+	cmd := exec.CommandContext(ctx, i.pipBin(), //nolint:gosec // G204 -- pip install of a registry identifier during fetch; no scripts invoked
 		"install", "--target", destDir,
 		"--no-input",
 		"--disable-pip-version-check",
@@ -223,7 +223,7 @@ func (i *CLIPackageInstaller) installPyPI(ctx context.Context, identifier, versi
 // absolute path to the bin entry.
 func resolveNPMBin(prefix, identifier string) (string, error) {
 	pkgDir := filepath.Join(prefix, "node_modules", filepath.FromSlash(identifier))
-	raw, err := os.ReadFile(filepath.Join(pkgDir, "package.json"))
+	raw, err := os.ReadFile(filepath.Join(pkgDir, "package.json")) //nolint:gosec // G304 -- path under install prefix we control
 	if err != nil {
 		return "", fmt.Errorf("read package.json: %w", err)
 	}
@@ -389,7 +389,7 @@ type consoleScript struct {
 }
 
 func parseConsoleScripts(path string) ([]consoleScript, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // G304 -- METADATA path under pip install target we control
 	if err != nil {
 		return nil, err
 	}
