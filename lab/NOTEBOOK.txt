@@ -120,3 +120,14 @@ observations:
 surprises: two protocol_error rows are jail faults, not protocol_broken — exactly the
   failure mode pre-reg was written to catch.
 
+----
+date: 2026-08-06
+run: package_broken contamination check (pre-Monday measurement)
+observations:
+  - Hypothesis: jail MODULE_NOT_FOUND seen in 2/10 protocol_error probes might
+    contaminate package_broken (n=60), the largest exclusion class.
+  - Hand-probed 10 random package_broken on host (seed 20260806): **0/10 host-ok**.
+  - Failures reproduce on host (mostly missing mcp.server.fastmcp / load errors).
+  - package_broken treated as sound for denominator freeze; Monday holds.
+surprises: none — contamination rate 0/10; no fix, no delay.
+

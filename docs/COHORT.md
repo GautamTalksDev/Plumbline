@@ -154,3 +154,21 @@ Week-1 starts with this residual on the books. Report in `RESULTS.md`:
 unexplained `exec_failed` = **37 (7.7%)**; ok/observable = **76.2%**;
 Round-7 did not clear G5a/G5d and did not invent exclusion classes to do so.
 
+### `package_broken` contamination check (2026-08-06, pre-Monday)
+
+R7-1 found 2/5 probed `protocol_error` rows were jail faults (host ok).
+That raised the question whether the largest exclusion class
+(`package_broken`, n=60) is similarly contaminated.
+
+**Measurement only** (seed `20260806`, same install+host-`mcpclient` path as
+R7-1; no reclassification, no jail fix): **10/10 random `package_broken`
+members also fail on the host** (0/10 host-ok). Dominant mode: published
+packages importing `mcp.server.fastmcp` / modules absent from their install
+closure. npm cases failed on host Node v18.20.8 with the same class of load
+error as in-jail.
+
+**Contamination rate in this sample: 0/10.** `package_broken` is treated as
+sound for the week-1 denominator freeze. The R7-1 jail staging bug remains
+real for some `protocol_error` rows but does not, on this sample, leak into
+`package_broken` at detectable rate.
+
