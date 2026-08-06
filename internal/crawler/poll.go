@@ -32,6 +32,8 @@ type PollResult struct {
 	EventType     string
 	Diagnostic    string
 	HTTPStatus    *int
+	PackageArgs   []string
+	RuntimeArgs   []string
 }
 
 // PackageMetaClient fetches upstream latest versions (npm / PyPI).
@@ -227,6 +229,8 @@ func PollServer(ctx context.Context, meta PackageMetaClient, srv RegistryServer,
 		RegistryType:  pkg.RegistryType,
 		PinnedVersion: pkg.Version,
 		PolledAt:      now,
+		PackageArgs:   append([]string(nil), pkg.PackageArgs...),
+		RuntimeArgs:   append([]string(nil), pkg.RuntimeArgs...),
 	}
 	if !Pollable(pkg.RegistryType) {
 		res.EventType = EventUnpollable

@@ -11,24 +11,36 @@ const EventsVersionV2 = "events-v2"
 
 // Fixed diagnostic strings. Never interpolate server-supplied text into these.
 const (
-	DiagOK            = ""
-	DiagAuthRequired  = "http_unauthorized"
-	DiagEndpoint404   = "http_not_found"
-	DiagDNS           = "dns_lookup_failed"
-	DiagTLS           = "tls_handshake_failed"
-	DiagHTTPError     = "http_non_2xx"
-	DiagProtocol      = "mcp_handshake_failed"
-	DiagMalformed     = "invalid_jsonrpc"
-	DiagTimeout       = "deadline_exceeded"
-	DiagSandbox       = "containment_failed"
-	DiagRefused       = "connection_refused"
-	DiagNoTarget      = "no_dialable_target"
-	DiagTooLarge      = "response_too_large"
-	DiagOptOut        = "opt_out"
-	DiagUnpollable    = "registry_unpollable"
-	DiagFetchError    = "package_fetch_failed"
-	DiagDeparted      = "cohort_member_departed"
-	DiagVersionPoll   = "version_polled"
+	DiagOK                   = ""
+	DiagAuthRequired         = "http_unauthorized"
+	DiagEndpoint404          = "http_not_found"
+	DiagDNS                  = "dns_lookup_failed"
+	DiagTLS                  = "tls_handshake_failed"
+	DiagHTTPError            = "http_non_2xx"
+	DiagProtocol             = "mcp_handshake_failed"
+	DiagMalformed            = "invalid_jsonrpc"
+	DiagTimeout              = "deadline_exceeded"
+	DiagContainmentFailed    = "containment_failed"
+	DiagExecFailed           = "exec_failed"
+	DiagCredentialsRequired  = "credentials_required"
+	DiagRuntimeIncompatible  = "runtime_incompatible"
+	DiagPackageBroken        = "package_broken"
+	DiagNetworkRequired      = "network_required_at_runtime"
+	DiagUsageMisconfigured   = "usage_misconfigured"
+	DiagSilentExit           = "silent_exit"
+	DiagInstallFailed        = "install_failed"
+	DiagEntrypointUnresolved = "entrypoint_unresolved"
+	DiagRefused              = "connection_refused"
+	DiagNoTarget             = "no_dialable_target"
+	DiagTooLarge             = "response_too_large"
+	DiagOptOut               = "opt_out"
+	DiagUnpollable           = "registry_unpollable"
+	DiagDeparted             = "cohort_member_departed"
+	DiagVersionPoll          = "version_polled"
+
+	// Legacy aliases — do not emit on new rows.
+	DiagSandbox    = DiagContainmentFailed
+	DiagFetchError = DiagInstallFailed
 )
 
 // Classified is a crawl event with a fixed diagnostic and optional HTTP status.
@@ -74,8 +86,8 @@ func Classify(err error) Classified {
 	case errors.Is(err, mcpclient.ErrRefused):
 		return Classified{Event: EventRefused, Diagnostic: DiagRefused}
 	case errors.Is(err, mcpclient.ErrTransport):
-		// Legacy transport sentinel (stdio dial, etc.) → refused.
-		return Classified{Event: EventRefused, Diagnostic: DiagRefused}
+		// Stdio dial/start failures are exec failures, not jail leaks.
+		return Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed}
 	default:
 		return Classified{Event: EventRefused, Diagnostic: DiagRefused}
 	}
@@ -102,9 +114,14 @@ func observationFromClassified(serverID string, c Classified) Observation {
 func isFixedDiagnostic(d string) bool {
 	switch d {
 	case DiagOK, DiagAuthRequired, DiagEndpoint404, DiagDNS, DiagTLS, DiagHTTPError,
-		DiagProtocol, DiagMalformed, DiagTimeout, DiagSandbox, DiagRefused,
-		DiagNoTarget, DiagTooLarge, DiagOptOut, DiagUnpollable, DiagFetchError,
-		DiagDeparted, DiagVersionPoll:
+		DiagProtocol, DiagMalformed, DiagTimeout, DiagContainmentFailed, DiagExecFailed,
+		DiagCredentialsRequired, DiagRuntimeIncompatible, DiagPackageBroken,
+		DiagNetworkRequired, DiagUsageMisconfigured, DiagSilentExit,
+		DiagInstallFailed, DiagEntrypointUnresolved, DiagRefused,
+		DiagNoTarget, DiagTooLarge, DiagOptOut, DiagUnpollable,
+		DiagDeparted, DiagVersionPoll,
+		// Legacy strings still accepted when reading helper JSON.
+		"package_fetch_failed", "sandbox_error":
 		return true
 	default:
 		return false
@@ -131,8 +148,26 @@ func fixedDiagnosticForEvent(ev string) string {
 		return DiagMalformed
 	case EventTimeout:
 		return DiagTimeout
-	case EventSandbox:
-		return DiagSandbox
+	case EventContainmentFailed, EventSandbox:
+		return DiagContainmentFailed
+	case EventExecFailed:
+		return DiagExecFailed
+	case EventCredentialsRequired:
+		return DiagCredentialsRequired
+	case EventRuntimeIncompatible:
+		return DiagRuntimeIncompatible
+	case EventPackageBroken:
+		return DiagPackageBroken
+	case EventNetworkRequired:
+		return DiagNetworkRequired
+	case EventUsageMisconfigured:
+		return DiagUsageMisconfigured
+	case EventSilentExit:
+		return DiagSilentExit
+	case EventInstallFailed, EventFetchError:
+		return DiagInstallFailed
+	case EventEntrypointUnresolved:
+		return DiagEntrypointUnresolved
 	case EventRefused:
 		return DiagRefused
 	case EventTooLarge:
@@ -143,11 +178,21 @@ func fixedDiagnosticForEvent(ev string) string {
 		return DiagVersionPoll
 	case EventUnpollable:
 		return DiagUnpollable
-	case EventFetchError:
-		return DiagFetchError
 	case EventDeparted:
 		return DiagDeparted
 	default:
-		return DiagSandbox
+		return DiagContainmentFailed
+	}
+}
+
+// normalizeLegacyEvent remaps deprecated event names from helper JSON.
+func normalizeLegacyEvent(ev string) string {
+	switch ev {
+	case "sandbox_error":
+		return EventContainmentFailed
+	case "fetch_error":
+		return EventInstallFailed
+	default:
+		return ev
 	}
 }

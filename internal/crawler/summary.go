@@ -12,22 +12,39 @@ import (
 
 // Summary is returned at the end of a crawl run and written to summary.json.
 type Summary struct {
-	RunID           string          `json:"run_id"`
-	Complete        bool            `json:"complete"`
-	CountsTowardSix bool            `json:"counts_toward_six_week_series"`
-	Tier1Complete   bool            `json:"tier1_complete"`
-	CohortComplete  bool            `json:"cohort_complete"`
-	ServersSeen     int             `json:"servers_seen"`
-	ServersDone     int             `json:"servers_done"`
-	RemotesExcluded int             `json:"remotes_excluded"`
-	Tier2Spawned    int             `json:"tier2_spawned"`
-	EventCounts     map[string]int  `json:"event_counts"`
-	ToolsLogged     int             `json:"tools_logged"`
-	Checkpoint      *log.Checkpoint `json:"checkpoint,omitempty"`
-	Resumed         bool            `json:"resumed"`
-	Duration        time.Duration   `json:"duration"`
-	DurationMS      int64           `json:"duration_ms"`
-	Error           string          `json:"error,omitempty"`
+	RunID           string         `json:"run_id"`
+	Complete        bool           `json:"complete"`
+	CountsTowardSix bool           `json:"counts_toward_six_week_series"`
+	DryRun          bool           `json:"dry_run,omitempty"`
+	Tier1Complete   bool           `json:"tier1_complete"`
+	CohortComplete  bool           `json:"cohort_complete"`
+	ServersSeen     int            `json:"servers_seen"`
+	ServersDone     int            `json:"servers_done"`
+	RemotesExcluded int            `json:"remotes_excluded"`
+	Tier2Spawned    int            `json:"tier2_spawned"`
+	EventCounts     map[string]int `json:"event_counts"`
+	ToolsLogged     int            `json:"tools_logged"`
+
+	// Cohort observability (gate 5 / G5a–G5d).
+	CohortSpawned         int     `json:"cohort_spawned"`
+	OKCount               int     `json:"ok_count"` // cohort ok
+	CredentialsRequired   int     `json:"credentials_required"`
+	NetworkRequired       int     `json:"network_required_at_runtime"`
+	RuntimeIncompatible   int     `json:"runtime_incompatible"`
+	PackageBroken         int     `json:"package_broken"`
+	UsageMisconfigured    int     `json:"usage_misconfigured"`
+	SilentExit            int     `json:"silent_exit"`
+	ObservablePopulation  int     `json:"observable_population"`
+	OKOfObservable        float64 `json:"ok_of_observable"`
+	UnexplainedExecFailed int     `json:"unexplained_exec_failed"`
+	UnexplainedPct        float64 `json:"unexplained_pct_of_cohort"`
+	BlindObservations     int     `json:"blind_observations"` // non-ok/timeout lacking stderr and exit
+
+	Checkpoint *log.Checkpoint `json:"checkpoint,omitempty"`
+	Resumed    bool            `json:"resumed"`
+	Duration   time.Duration   `json:"duration"`
+	DurationMS int64           `json:"duration_ms"`
+	Error      string          `json:"error,omitempty"`
 }
 
 // CountsTowardSixWeekSeries reports whether this run may count in the kill-test series.

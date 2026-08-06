@@ -1,0 +1,9 @@
+{
+  "name": "plumbline-fake-mcp",
+  "version": "1.0.0",
+  "bin": { "plumbline-fake-mcp": "server.js" },
+  "dependencies": {
+    "plumbline-fake-dep": "file:../dep-pkg"
+  },
+  "bundledDependencies": ["plumbline-fake-dep"]
+}

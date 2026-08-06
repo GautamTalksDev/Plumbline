@@ -10,21 +10,23 @@ import (
 
 // Phase names persisted in crawl state.
 const (
-	PhaseTier1   = "tier1"
-	PhaseTier2   = "tier2"
+	PhaseTier1    = "tier1"
+	PhaseTier2    = "tier2"
 	PhaseComplete = "complete"
 )
 
 // PollSnapshot is the last known upstream version poll for a server.
 type PollSnapshot struct {
-	Identifier    string `json:"identifier"`
-	RegistryType  string `json:"registry_type"`
-	PinnedVersion string `json:"pinned_version"`
-	LatestVersion string `json:"latest_version"`
-	Differ        bool   `json:"differ"`
-	PublishedAt   string `json:"published_at,omitempty"`
-	PolledAt      string `json:"polled_at"`
-	Event         string `json:"event"`
+	Identifier    string   `json:"identifier"`
+	RegistryType  string   `json:"registry_type"`
+	PinnedVersion string   `json:"pinned_version"`
+	LatestVersion string   `json:"latest_version"`
+	Differ        bool     `json:"differ"`
+	PublishedAt   string   `json:"published_at,omitempty"`
+	PolledAt      string   `json:"polled_at"`
+	Event         string   `json:"event"`
+	PackageArgs   []string `json:"package_args,omitempty"`
+	RuntimeArgs   []string `json:"runtime_args,omitempty"`
 }
 
 // Tier2Job is one spawn target for tier 2.

@@ -66,10 +66,10 @@ func TestContainmentMaliciousServer(t *testing.T) {
 		Env:      []string{"HOST_CANARY=" + canary, "EXTERNAL_HOST=1.1.1.1:443"},
 		Timeout:  15 * time.Second,
 	})
-	if obs.EventType == crawler.EventSandbox && strings.Contains(obs.Detail, "wrote canary") {
+	if obs.EventType == crawler.EventContainmentFailed && strings.Contains(obs.Detail, "wrote canary") {
 		t.Fatalf("escape: wrote canary: %+v", obs)
 	}
-	if obs.EventType == crawler.EventSandbox && strings.Contains(obs.Detail, "network egress") {
+	if obs.EventType == crawler.EventContainmentFailed && strings.Contains(obs.Detail, "network egress") {
 		t.Fatalf("escape: network egress: %+v", obs)
 	}
 
@@ -153,11 +153,13 @@ func (f fixedMeta) Latest(_ context.Context, _, _ string) (string, time.Time, er
 	return string(f), time.Time{}, nil
 }
 
-type nopFetch struct{}
+type nopInstall struct{}
 
-func (nopFetch) Fetch(_ context.Context, _ crawler.Package, _ string, destDir string) (string, error) {
-	p := filepath.Join(destDir, "x")
-	return p, os.WriteFile(p, []byte("x"), 0o644)
+func (nopInstall) Install(_ context.Context, pkg crawler.Package, latest string, destDir string) (crawler.InstallResult, error) {
+	return crawler.InstallResult{
+		WorkDir: destDir, Command: "true", Entrypoint: "x",
+		RegistryType: pkg.RegistryType, Identifier: pkg.Identifier, Version: latest,
+	}, nil
 }
 
 func TestCrawlResumeNoDuplicates(t *testing.T) {
@@ -180,19 +182,19 @@ func TestCrawlResumeNoDuplicates(t *testing.T) {
 	clock := func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) }
 
 	sum1, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:     statePath,
-		LogPath:       logPath,
-		OptOutPath:    optOut,
-		Sandbox:       &crawler.FakeSandbox{},
-		Registry:      &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{all[:2]}},
-		PackageMeta:   fixedMeta("1.0.0"),
-		PackageFetch:  nopFetch{},
-		FrozenCohort:  map[string]bool{},
-		SigningKey:    priv,
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
-		Clock:         clock,
+		StatePath:      statePath,
+		LogPath:        logPath,
+		OptOutPath:     optOut,
+		Sandbox:        &crawler.FakeSandbox{},
+		Registry:       &crawler.MemoryRegistry{Pages: [][]crawler.RegistryServer{all[:2]}},
+		PackageMeta:    fixedMeta("1.0.0"),
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		SigningKey:     priv,
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          clock,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -216,19 +218,19 @@ func TestCrawlResumeNoDuplicates(t *testing.T) {
 	}
 
 	sum2, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:     statePath,
-		LogPath:       logPath,
-		OptOutPath:    optOut,
-		Sandbox:       &crawler.FakeSandbox{},
-		Registry:      &crawler.MemoryRegistry{Pages: nil},
-		PackageMeta:   fixedMeta("1.0.0"),
-		PackageFetch:  nopFetch{},
-		FrozenCohort:  map[string]bool{},
-		SigningKey:    priv,
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
-		Clock:         clock,
+		StatePath:      statePath,
+		LogPath:        logPath,
+		OptOutPath:     optOut,
+		Sandbox:        &crawler.FakeSandbox{},
+		Registry:       &crawler.MemoryRegistry{Pages: nil},
+		PackageMeta:    fixedMeta("1.0.0"),
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		SigningKey:     priv,
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          clock,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -289,18 +291,18 @@ func TestFailureEventTypesReported(t *testing.T) {
 	})
 
 	sum, err := crawler.Run(context.Background(), crawler.Config{
-		StatePath:     filepath.Join(dir, "state.json"),
-		LogPath:       filepath.Join(dir, "log.sqlite"),
-		OptOutPath:    filepath.Join(dir, "opt-out.txt"),
-		Sandbox:       &crawler.FakeSandbox{},
-		Registry:      reg,
-		PackageMeta:   meta,
-		PackageFetch:  nopFetch{},
-		FrozenCohort:  map[string]bool{},
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
-		Clock:         func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) },
+		StatePath:      filepath.Join(dir, "state.json"),
+		LogPath:        filepath.Join(dir, "log.sqlite"),
+		OptOutPath:     filepath.Join(dir, "opt-out.txt"),
+		Sandbox:        &crawler.FakeSandbox{},
+		Registry:       reg,
+		PackageMeta:    meta,
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) },
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -347,13 +349,13 @@ func TestOptOutHonoured(t *testing.T) {
 			pkg("vendor/secret", "secret"),
 			pkg("vendor/ok", "ok"),
 		}}},
-		PackageMeta:   meta,
-		PackageFetch:  nopFetch{},
-		FrozenCohort:  map[string]bool{},
-		Concurrency:   1,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
-		Clock:         func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) },
+		PackageMeta:    meta,
+		PackageInstall: nopInstall{},
+		FrozenCohort:   map[string]bool{},
+		Concurrency:    1,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          func() time.Time { return time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC) },
 	})
 	if err != nil {
 		t.Fatal(err)

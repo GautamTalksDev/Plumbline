@@ -21,23 +21,35 @@ const UserAgent = "PlumblineCrawler/0.1 (+https://github.com/GautamTalksDev/Plum
 
 // Event types recorded for every server (including failures).
 const (
-	EventOK           = "ok"
-	EventAuthRequired = "auth_required"
-	EventEndpoint404  = "endpoint_404"
-	EventDNS          = "dns_failure"
-	EventTLS          = "tls_failure"
-	EventHTTPError    = "http_error"
-	EventProtocol     = "protocol_error"
-	EventMalformed    = "malformed"
-	EventTimeout      = "timeout"
-	EventSandbox      = "sandbox_error"
-	EventRefused      = "refused"
-	EventTooLarge     = "too_large"
-	EventOptOut       = "opt_out"
-	EventVersionPoll  = "version_poll"
-	EventUnpollable   = "unpollable"
-	EventFetchError   = "fetch_error"
-	EventDeparted     = "departed"
+	EventOK                   = "ok"
+	EventAuthRequired         = "auth_required"
+	EventEndpoint404          = "endpoint_404"
+	EventDNS                  = "dns_failure"
+	EventTLS                  = "tls_failure"
+	EventHTTPError            = "http_error"
+	EventProtocol             = "protocol_error"
+	EventMalformed            = "malformed"
+	EventTimeout              = "timeout"
+	EventContainmentFailed    = "containment_failed"
+	EventExecFailed           = "exec_failed"
+	EventCredentialsRequired  = "credentials_required"
+	EventRuntimeIncompatible  = "runtime_incompatible"
+	EventPackageBroken        = "package_broken"
+	EventNetworkRequired      = "network_required_at_runtime"
+	EventUsageMisconfigured   = "usage_misconfigured"
+	EventSilentExit           = "silent_exit"
+	EventInstallFailed        = "install_failed"
+	EventEntrypointUnresolved = "entrypoint_unresolved"
+	EventRefused              = "refused"
+	EventTooLarge             = "too_large"
+	EventOptOut               = "opt_out"
+	EventVersionPoll          = "version_poll"
+	EventUnpollable           = "unpollable"
+	EventDeparted             = "departed"
+
+	// Deprecated: no longer emitted. Kept for reading historical rows / tests.
+	EventSandbox    = "sandbox_error"
+	EventFetchError = "fetch_error"
 )
 
 // StatusToolName is the legacy per-server status tool name (pre-run-scoped).
@@ -67,10 +79,11 @@ type Config struct {
 	Sandbox          Sandbox
 	Registry         RegistryClient
 	PackageMeta      PackageMetaClient
-	PackageFetch     PackageFetcher
+	PackageInstall   PackageInstaller
 	Clock            func() time.Time
 	SkipLiveGuard    bool
 	IncludeRemotes   bool
+	DryRun           bool // when true, complete runs still write counts_toward_six_week_series=false
 	FrozenCohort     map[string]bool
 }
 
@@ -95,6 +108,15 @@ type Observation struct {
 	PolledAt      string
 	CohortMember  bool
 	SpawnReason   string
+	Entrypoint    string // resolved install entrypoint (tier 2)
+	StderrPreview string // bounded escaped stderr; never a diagnostic
+	ExitCode      int
+	ExitCodeSet   bool // true when a process exit status was observed (incl. 0)
+	ExitSignal    string
+
+	// Carried from server.json through poll → tier-2 reconstruct.
+	PackageArgs []string
+	RuntimeArgs []string
 }
 
 // Run executes a two-tier crawl: version poll → targeted spawn → checkpoint.
@@ -126,8 +148,8 @@ func Run(ctx context.Context, cfg Config) (Summary, error) {
 	if cfg.PackageMeta == nil {
 		cfg.PackageMeta = &HTTPPackageMeta{UserAgent: UserAgent}
 	}
-	if cfg.PackageFetch == nil {
-		cfg.PackageFetch = &HTTPPackageFetcher{UserAgent: UserAgent}
+	if cfg.PackageInstall == nil {
+		cfg.PackageInstall = &CLIPackageInstaller{}
 	}
 	if cfg.IncludeRemotes && cfg.Sandbox == nil {
 		sb, err := DefaultSandbox()
@@ -185,7 +207,20 @@ func Run(ctx context.Context, cfg Config) (Summary, error) {
 		sum.CohortComplete = snap.CohortComplete
 		sum.RemotesExcluded = snap.RemotesExcluded
 		sum.Complete = snap.RunComplete
-		sum.CountsTowardSix = snap.RunComplete
+		sum.CountsTowardSix = snap.RunComplete && !cfg.DryRun
+		sum.DryRun = cfg.DryRun
+		sum.ObservablePopulation = sum.CohortSpawned - sum.CredentialsRequired -
+			sum.NetworkRequired - sum.RuntimeIncompatible - sum.PackageBroken -
+			sum.UsageMisconfigured - sum.SilentExit
+		if sum.ObservablePopulation < 0 {
+			sum.ObservablePopulation = 0
+		}
+		if sum.ObservablePopulation > 0 {
+			sum.OKOfObservable = float64(sum.OKCount) / float64(sum.ObservablePopulation)
+		}
+		if sum.CohortSpawned > 0 {
+			sum.UnexplainedPct = float64(sum.UnexplainedExecFailed) / float64(sum.CohortSpawned)
+		}
 		sum.Duration = cfg.Clock().Sub(start)
 		sum.DurationMS = sum.Duration.Milliseconds()
 		if runErr != nil {
@@ -408,7 +443,7 @@ func runTier2(ctx context.Context, cfg Config, st *State, lg *log.Log, sum *Summ
 					EventsVersion: EventsVersionV2, CohortMember: true,
 				}
 			default:
-				obs = observePackageFetchThenSpawn(ctx, cfg.Sandbox, cfg.PackageFetch, job.Server, job.Latest)
+				obs = observePackageInstallThenSpawn(ctx, cfg.Sandbox, cfg.PackageInstall, job.Server, job.Latest)
 				obs.CohortMember = job.CohortMember
 				obs.SpawnReason = job.Reason
 				obs.LatestVersion = job.Latest
@@ -424,6 +459,31 @@ func runTier2(ctx context.Context, cfg Config, st *State, lg *log.Log, sum *Summ
 			sum.EventCounts[obs.EventType]++
 			sum.ToolsLogged += n
 			sum.Tier2Spawned++
+			if obs.CohortMember {
+				sum.CohortSpawned++
+				switch obs.EventType {
+				case EventOK:
+					sum.OKCount++
+				case EventCredentialsRequired:
+					sum.CredentialsRequired++
+				case EventNetworkRequired:
+					sum.NetworkRequired++
+				case EventRuntimeIncompatible:
+					sum.RuntimeIncompatible++
+				case EventPackageBroken:
+					sum.PackageBroken++
+				case EventUsageMisconfigured:
+					sum.UsageMisconfigured++
+				case EventSilentExit:
+					sum.SilentExit++
+				case EventExecFailed:
+					sum.UnexplainedExecFailed++
+				}
+				if obs.EventType != EventOK && obs.EventType != EventTimeout &&
+					isProcessTerminalEvent(obs.EventType) && observationBlind(obs) {
+					sum.BlindObservations++
+				}
+			}
 			mu.Unlock()
 			if err := st.MarkTier2Completed(cfg.StatePath, job.Server.Name, job.CohortMember); err != nil {
 				setErr(err)
@@ -495,6 +555,8 @@ func buildTier2Jobs(st *State, frozenCohort map[string]bool) ([]Tier2Job, map[st
 				RegistryType: snap.RegistryType,
 				Identifier:   snap.Identifier,
 				Version:      snap.PinnedVersion,
+				PackageArgs:  append([]string(nil), snap.PackageArgs...),
+				RuntimeArgs:  append([]string(nil), snap.RuntimeArgs...),
 			}},
 		}
 	}
@@ -542,7 +604,7 @@ func buildTier2Jobs(st *State, frozenCohort map[string]bool) ([]Tier2Job, map[st
 	for id, snap := range this {
 		prevSnap, had := prev[id]
 		changed := had && prevSnap.LatestVersion != "" && snap.LatestVersion != "" && prevSnap.LatestVersion != snap.LatestVersion
-		if changed {
+		if changed && Installable(snap.RegistryType) {
 			srv := byID[id]
 			add(Tier2Job{Server: srv, Latest: snap.LatestVersion, Reason: "version_change"})
 		}
@@ -592,6 +654,8 @@ func observationFromPoll(pr PollResult) Observation {
 		VersionDiffer: pr.Differ,
 		PublishedAt:   pub,
 		PolledAt:      pr.PolledAt.UTC().Format(time.RFC3339),
+		PackageArgs:   append([]string(nil), pr.PackageArgs...),
+		RuntimeArgs:   append([]string(nil), pr.RuntimeArgs...),
 	}
 }
 
@@ -605,6 +669,8 @@ func pollSnapshotFromObs(obs Observation) PollSnapshot {
 		PublishedAt:   obs.PublishedAt,
 		PolledAt:      obs.PolledAt,
 		Event:         obs.EventType,
+		PackageArgs:   append([]string(nil), obs.PackageArgs...),
+		RuntimeArgs:   append([]string(nil), obs.RuntimeArgs...),
 	}
 }
 
@@ -686,21 +752,25 @@ func eventCanonical(obs Observation) ([]byte, string, error) {
 		diag = obs.Detail
 	}
 	payload, err := json.Marshal(struct {
-		Event          string `json:"event"`
-		Server         string `json:"server_id"`
-		Diagnostic     string `json:"diagnostic,omitempty"`
-		HTTPStatus     *int   `json:"http_status"`
-		EventsVersion  string `json:"events_version"`
-		ToolCount      int    `json:"tool_count,omitempty"`
-		Identifier     string `json:"identifier,omitempty"`
-		RegistryType   string `json:"registry_type,omitempty"`
-		PinnedVersion  string `json:"pinned_version,omitempty"`
-		LatestVersion  string `json:"latest_version,omitempty"`
-		VersionDiffer  bool   `json:"version_differ,omitempty"`
-		PublishedAt    string `json:"published_at,omitempty"`
-		PolledAt       string `json:"polled_at,omitempty"`
-		CohortMember   bool   `json:"cohort_member,omitempty"`
-		SpawnReason    string `json:"spawn_reason,omitempty"`
+		Event         string `json:"event"`
+		Server        string `json:"server_id"`
+		Diagnostic    string `json:"diagnostic,omitempty"`
+		HTTPStatus    *int   `json:"http_status"`
+		EventsVersion string `json:"events_version"`
+		ToolCount     int    `json:"tool_count,omitempty"`
+		Identifier    string `json:"identifier,omitempty"`
+		RegistryType  string `json:"registry_type,omitempty"`
+		PinnedVersion string `json:"pinned_version,omitempty"`
+		LatestVersion string `json:"latest_version,omitempty"`
+		VersionDiffer bool   `json:"version_differ,omitempty"`
+		PublishedAt   string `json:"published_at,omitempty"`
+		PolledAt      string `json:"polled_at,omitempty"`
+		CohortMember  bool   `json:"cohort_member,omitempty"`
+		SpawnReason   string `json:"spawn_reason,omitempty"`
+		Entrypoint    string `json:"entrypoint,omitempty"`
+		StderrPreview string `json:"stderr_preview,omitempty"`
+		ExitCode      *int   `json:"exit_code,omitempty"`
+		ExitSignal    string `json:"exit_signal,omitempty"`
 	}{
 		Event:         obs.EventType,
 		Server:        obs.ServerID,
@@ -717,6 +787,10 @@ func eventCanonical(obs Observation) ([]byte, string, error) {
 		PolledAt:      obs.PolledAt,
 		CohortMember:  obs.CohortMember,
 		SpawnReason:   obs.SpawnReason,
+		Entrypoint:    obs.Entrypoint,
+		StderrPreview: obs.StderrPreview,
+		ExitCode:      exitCodePtr(obs),
+		ExitSignal:    obs.ExitSignal,
 	})
 	if err != nil {
 		return nil, "", err

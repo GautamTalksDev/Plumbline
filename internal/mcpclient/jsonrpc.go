@@ -94,7 +94,7 @@ func extractToolsRaw(result json.RawMessage) ([]json.RawMessage, error) {
 
 // limitedReader returns ErrTooLarge when more than max bytes are read.
 type limitedReader struct {
-	r     io.Reader
+	r      io.Reader
 	remain int64
 }
 

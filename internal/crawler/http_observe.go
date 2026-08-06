@@ -16,7 +16,7 @@ func observeHTTPAllowlisted(ctx context.Context, t Target) Observation {
 	}
 	if t.AllowHost == "" {
 		return observationFromClassified(t.ServerID, Classified{
-			Event: EventSandbox, Diagnostic: DiagSandbox,
+			Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed,
 		})
 	}
 	sess, err := mcpclient.Connect(ctx, mcpclient.ServerSpec{

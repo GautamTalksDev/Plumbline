@@ -38,18 +38,23 @@ metadata fetch only.
 
 ### Tier 2 — spawn and hash (weekly, targeted)
 
-Spawn, `tools/list`, canonicalize and hash for the union of:
+Install the full dependency closure during a bounded **fetch phase** (network
+open to the package registry only):
+
+- npm → `npm install --prefix <dir> --ignore-scripts <ident>@<ver>`, resolve `bin`
+- pypi → `pip install --target <dir> --no-input <ident>==<ver>`, resolve console script
+
+`--ignore-scripts` is mandatory. Lifecycle scripts never run.
+
+Then drop network to default-deny and exec `node <bin>` / `python3 <entrypoint>`
+inside the sandbox for the union of:
 
 1. every server whose upstream-latest version **changed** since the previous
    poll, and
 2. the fixed **control cohort** (see [`COHORT.md`](COHORT.md)).
 
-Package fetch allows egress to the package-registry host only during a
-bounded fetch phase; the existing CP-8 sandbox then runs with default-deny
-network. Fetch-phase failures are recorded as `fetch_error`, distinct from
-spawn failures.
-
-The cohort is spawned **every week** regardless of version change.
+Install failures are `install_failed`; missing entrypoints are
+`entrypoint_unresolved`. Never exec an archive as argv0.
 
 ## What we collect
 
@@ -99,8 +104,17 @@ longer emitted. Mutually exclusive failure classes:
 |-------|---------|
 | `ok` | Initialize + tools/list succeeded (tier 2) |
 | `version_poll` | Tier-1 upstream version poll succeeded |
-| `unpollable` | Package registry type has no version API (oci/mcpb/…) |
-| `fetch_error` | Bounded package-fetch phase failed |
+| `unpollable` | Package registry type has no version API (oci/mcpb/…) — **tier 1 only** |
+| `install_failed` | Fetch-phase `npm`/`pip` install returned non-zero |
+| `entrypoint_unresolved` | Install succeeded; no runnable bin/console script |
+| `credentials_required` | Process exited citing missing API key/token/env — permanently unobservable |
+| `network_required_at_runtime` | Needs outbound network at startup; deny-all jail correctly blocks it |
+| `runtime_incompatible` | Node/Python engine or version mismatch |
+| `package_broken` | Import/syntax/missing-module failure in a published package |
+| `usage_misconfigured` | Prints CLI usage / wrong entry after `packageArguments` / `runtimeArguments` applied |
+| `silent_exit` | Exits 0 with empty stderr without speaking MCP |
+| `exec_failed` | Target process could not start (still unexplained after matchers) |
+| `containment_failed` | Jail itself failed or leaked — rare; treat as a stop |
 | `departed` | Frozen cohort member no longer in the registry |
 | `auth_required` | HTTP 401 or 403 |
 | `endpoint_404` | HTTP 404, or 400 with a body indicating no such route |
@@ -110,10 +124,12 @@ longer emitted. Mutually exclusive failure classes:
 | `protocol_error` | Transport succeeded; MCP handshake did not |
 | `malformed` | Valid transport; invalid JSON-RPC |
 | `timeout` | Deadline exceeded |
-| `sandbox_error` | Containment layer failed; target never reached |
 | `refused` | Connection refused, or no dialable target in the spec |
 | `too_large` | Response exceeded size cap |
 | `opt_out` | Server opted out; not contacted |
+
+Deprecated (historical rows only — do not emit): `sandbox_error`, `fetch_error`,
+`transport_error`.
 
 Streamable HTTP probes (when `--include-remotes`) **POST** initialize first.
 

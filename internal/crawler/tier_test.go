@@ -22,11 +22,18 @@ func (m memMeta) Latest(_ context.Context, registryType, identifier string) (str
 	return v, time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC), nil
 }
 
-type memFetch struct{}
+type memInstall struct{}
 
-func (memFetch) Fetch(_ context.Context, pkg Package, latest string, destDir string) (string, error) {
-	p := filepath.Join(destDir, "pkg.bin")
-	return p, os.WriteFile(p, []byte("fake-package"), 0o644)
+func (memInstall) Install(_ context.Context, pkg Package, latest string, destDir string) (InstallResult, error) {
+	return InstallResult{
+		WorkDir:      destDir,
+		Command:      "true",
+		Args:         nil,
+		Entrypoint:   "fake",
+		RegistryType: pkg.RegistryType,
+		Identifier:   pkg.Identifier,
+		Version:      latest,
+	}, nil
 }
 
 func pkgServer(name, reg, id, ver string) RegistryServer {
@@ -48,18 +55,18 @@ func TestVersionChangeDetection(t *testing.T) {
 		pkgServer("vendor/demo", "npm", "demo", "1.0.0"),
 	}}}
 	cfg := Config{
-		StatePath:     filepath.Join(dir, "state.json"),
-		LogPath:       filepath.Join(dir, "log.sqlite"),
-		SummaryPath:   filepath.Join(dir, "summary.json"),
-		Sandbox:       &FakeSandbox{},
-		Registry:      reg,
-		PackageMeta:   meta,
-		PackageFetch:  memFetch{},
-		FrozenCohort:  map[string]bool{}, // empty cohort → no forced spawns
-		Concurrency:   2,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
-		Clock:         func() time.Time { return time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC) },
+		StatePath:      filepath.Join(dir, "state.json"),
+		LogPath:        filepath.Join(dir, "log.sqlite"),
+		SummaryPath:    filepath.Join(dir, "summary.json"),
+		Sandbox:        &FakeSandbox{},
+		Registry:       reg,
+		PackageMeta:    meta,
+		PackageInstall: memInstall{},
+		FrozenCohort:   map[string]bool{}, // empty cohort → no forced spawns
+		Concurrency:    2,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          func() time.Time { return time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC) },
 	}
 	sum1, err := Run(context.Background(), cfg)
 	if err != nil {
@@ -140,17 +147,17 @@ func TestIncompleteRunNotCounted(t *testing.T) {
 		return meta.Latest(context.Background(), registryType, identifier)
 	})
 	sum, err := Run(ctx, Config{
-		StatePath:     filepath.Join(dir, "state.json"),
-		LogPath:       filepath.Join(dir, "log.sqlite"),
-		SummaryPath:   filepath.Join(dir, "summary.json"),
-		Sandbox:       &FakeSandbox{},
-		Registry:      reg,
-		PackageMeta:   slowMeta,
-		PackageFetch:  memFetch{},
-		FrozenCohort:  map[string]bool{},
-		Concurrency:   1,
-		RequestDelay:  time.Millisecond,
-		SkipLiveGuard: true,
+		StatePath:      filepath.Join(dir, "state.json"),
+		LogPath:        filepath.Join(dir, "log.sqlite"),
+		SummaryPath:    filepath.Join(dir, "summary.json"),
+		Sandbox:        &FakeSandbox{},
+		Registry:       reg,
+		PackageMeta:    slowMeta,
+		PackageInstall: memInstall{},
+		FrozenCohort:   map[string]bool{},
+		Concurrency:    1,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
 	})
 	_ = err
 	if sum.Complete || sum.CountsTowardSixWeekSeries() {
@@ -226,5 +233,47 @@ func TestUnpollableOCI(t *testing.T) {
 	pr := PollServer(context.Background(), memMeta{}, pkgServer("o/ci", "oci", "ghcr.io/x", "1"), time.Now())
 	if pr.EventType != EventUnpollable {
 		t.Fatalf("%+v", pr)
+	}
+}
+
+func TestDryRunCountsTowardFalse(t *testing.T) {
+	dir := t.TempDir()
+	sum, err := Run(context.Background(), Config{
+		StatePath:      filepath.Join(dir, "state.json"),
+		LogPath:        filepath.Join(dir, "log.sqlite"),
+		SummaryPath:    filepath.Join(dir, "summary.json"),
+		Sandbox:        &FakeSandbox{},
+		Registry:       &MemoryRegistry{Pages: [][]RegistryServer{{pkgServer("v/a", "npm", "a", "1.0.0")}}},
+		PackageMeta:    memMeta{"npm|a": "1.0.0"},
+		PackageInstall: memInstall{},
+		FrozenCohort:   map[string]bool{},
+		DryRun:         true,
+		Concurrency:    1,
+		RequestDelay:   time.Millisecond,
+		SkipLiveGuard:  true,
+		Clock:          func() time.Time { return time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sum.Complete {
+		t.Fatalf("expected complete dry run: %+v", sum)
+	}
+	if sum.CountsTowardSix {
+		t.Fatal("dry-run must set counts_toward_six_week_series=false")
+	}
+	if !sum.DryRun {
+		t.Fatal("summary.dry_run unset")
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "summary.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded Summary
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.CountsTowardSix || !decoded.DryRun {
+		t.Fatalf("summary file: %+v", decoded)
 	}
 }

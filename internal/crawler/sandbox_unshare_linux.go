@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
+	"strings"
 )
 
 // UnshareSandbox isolates command targets with Linux user/mount/net/pid namespaces
@@ -29,11 +29,7 @@ func NewUnshareSandbox() (*UnshareSandbox, error) {
 
 // Observe runs Command inside a pivot_root jail, or allowlisted HTTP for remotes.
 func (u *UnshareSandbox) Observe(ctx context.Context, t Target) Observation {
-	timeout := t.Timeout
-	if timeout <= 0 {
-		timeout = 60 * time.Second
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := withTimeout(ctx, t.Timeout)
 	defer cancel()
 
 	if t.Command == "" && t.URL != "" {
@@ -42,30 +38,91 @@ func (u *UnshareSandbox) Observe(ctx context.Context, t Target) Observation {
 	if t.Command == "" {
 		return observationFromClassified(t.ServerID, Classified{Event: EventRefused, Diagnostic: DiagNoTarget})
 	}
+	if t.SpeakMCP {
+		return u.observeMCP(ctx, t)
+	}
+	return u.observeHelperJSON(ctx, t)
+}
 
+func (u *UnshareSandbox) observeMCP(ctx context.Context, t Target) Observation {
+	if t.WorkDir == "" {
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
+	}
 	helper, err := u.jailHelperPath()
 	if err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 
 	jailDir, err := os.MkdirTemp("", "plumbline-jail-*")
 	if err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 	defer os.RemoveAll(jailDir)
 
 	root := filepath.Join(jailDir, "root")
 	if err := os.MkdirAll(root, 0o755); err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
+	}
+	workDst := filepath.Join(root, "work")
+	if err := copyTree(t.WorkDir, workDst); err != nil {
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
+	}
+
+	runtime := t.Command
+	jailRuntime := ""
+	switch {
+	case runtime == "node" || strings.HasSuffix(runtime, "/node"):
+		jp, err := stageNodeIntoJail(root)
+		if err != nil {
+			return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
+		}
+		jailRuntime = jp
+	case runtime == "python" || runtime == "python3" || strings.HasSuffix(runtime, "/python3") || strings.HasSuffix(runtime, "/python"):
+		// /usr is bind-mounted into the jail by plumbline-jail.
+		jailRuntime = "/usr/bin/python3"
+	default:
+		// Copy arbitrary helper binary (containment tests use this path via SpeakMCP=false).
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
+	}
+
+	args := rewriteArgsToJail(t.WorkDir, t.Args)
+	env := rewriteEnvToJail(t.WorkDir, t.Env)
+
+	unshareArgs := []string{
+		"--user", "--map-root-user",
+		"--mount", "--net",
+		"--pid", "--fork", "--kill-child",
+		helper, root, jailRuntime,
+	}
+	unshareArgs = append(unshareArgs, args...)
+
+	return observeStdioMCP(ctx, t.ServerID, "unshare", unshareArgs, env, "")
+}
+
+func (u *UnshareSandbox) observeHelperJSON(ctx context.Context, t Target) Observation {
+	helper, err := u.jailHelperPath()
+	if err != nil {
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
+	}
+
+	jailDir, err := os.MkdirTemp("", "plumbline-jail-*")
+	if err != nil {
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
+	}
+	defer os.RemoveAll(jailDir)
+
+	root := filepath.Join(jailDir, "root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 	// Place target outside /tmp so the jail's tmpfs does not wipe it.
 	target := filepath.Join(root, "observe")
 	bin, err := os.ReadFile(t.Command)
 	if err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
 	}
 	if err := os.WriteFile(target, bin, 0o755); err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
 	}
 
 	args := []string{
@@ -90,12 +147,24 @@ func (u *UnshareSandbox) Observe(ctx context.Context, t Target) Observation {
 		if looksLikeObserveJSON(stdout.Bytes()) {
 			return parseObserveOutput(t.ServerID, stdout.Bytes())
 		}
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		// Process failed to start or jail setup failed. Distinguish: if the
+		// helper never ran, stderr from plumbline-jail setup → containment;
+		// otherwise exec failure.
+		if isJailSetupFailure(stderr.Bytes()) {
+			return observationFromClassified(t.ServerID, Classified{Event: EventContainmentFailed, Diagnostic: DiagContainmentFailed})
+		}
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
 	}
 	if looksLikeObserveJSON(stdout.Bytes()) {
 		return parseObserveOutput(t.ServerID, stdout.Bytes())
 	}
 	return observationFromClassified(t.ServerID, Classified{Event: EventOK, Diagnostic: DiagOK})
+}
+
+func isJailSetupFailure(stderr []byte) bool {
+	s := string(stderr)
+	return strings.Contains(s, "jail setup:") || strings.Contains(s, "pivot_root") ||
+		strings.Contains(s, "unshare:")
 }
 
 func (u *UnshareSandbox) jailHelperPath() (string, error) {

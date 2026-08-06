@@ -20,8 +20,21 @@ const (
 	CohortThreshold uint64 = 500
 )
 
+// CohortEligible reports whether a server may be selected into the control
+// cohort: it must have packages and an installable primary registry (npm/pypi).
+// oci/mcpb cannot be spawned by the tier-2 install path and are excluded at
+// generation time.
+func CohortEligible(s RegistryServer) bool {
+	pkg, ok := PrimaryPackage(s)
+	if !ok {
+		return false
+	}
+	return Installable(pkg.RegistryType)
+}
+
 // InControlCohort reports whether serverID is in the algorithmic control cohort.
 // Selection depends only on serverID and CohortVersion — no randomness, clocks, or local state.
+// Callers must still intersect with CohortEligible when building the member list.
 func InControlCohort(serverID string) bool {
 	sum := sha256.Sum256([]byte(CohortVersion + "|" + serverID))
 	n := binary.BigEndian.Uint64(sum[:8])

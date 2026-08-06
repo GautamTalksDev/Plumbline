@@ -28,11 +28,11 @@ const (
 
 // Sentinel errors recorded as log events. Use errors.Is.
 var (
-	ErrTimeout    = errors.New("mcpclient: timeout")
-	ErrTooLarge   = errors.New("mcpclient: response too large")
-	ErrMalformed  = errors.New("mcpclient: malformed JSON")
-	ErrTransport  = errors.New("mcpclient: transport error")
-	ErrProtocol   = errors.New("mcpclient: protocol error")
+	ErrTimeout   = errors.New("mcpclient: timeout")
+	ErrTooLarge  = errors.New("mcpclient: response too large")
+	ErrMalformed = errors.New("mcpclient: malformed JSON")
+	ErrTransport = errors.New("mcpclient: transport error")
+	ErrProtocol  = errors.New("mcpclient: protocol error")
 )
 
 // Transport names for ServerSpec.Transport.

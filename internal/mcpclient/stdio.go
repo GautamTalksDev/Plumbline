@@ -13,11 +13,12 @@ import (
 )
 
 type stdioTransport struct {
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
-	stdout *bufio.Reader
-	mu     sync.Mutex
-	done   chan struct{}
+	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	stdout  *bufio.Reader
+	stderr  *limitedStderr
+	mu      sync.Mutex
+	done    chan struct{}
 	waitErr error
 }
 
@@ -39,7 +40,8 @@ func dialStdio(lifeCtx context.Context, spec ServerSpec) (transport, error) {
 		_ = stdin.Close()
 		return nil, fmt.Errorf("%w: stdout pipe: %v", ErrTransport, err)
 	}
-	cmd.Stderr = io.Discard
+	stderrBuf := &limitedStderr{}
+	cmd.Stderr = stderrBuf
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("%w: start: %v", ErrTransport, err)
@@ -49,6 +51,7 @@ func dialStdio(lifeCtx context.Context, spec ServerSpec) (transport, error) {
 		cmd:    cmd,
 		stdin:  stdin,
 		stdout: bufio.NewReaderSize(stdout, 64*1024),
+		stderr: stderrBuf,
 		done:   make(chan struct{}),
 	}
 	go func() {
@@ -102,9 +105,41 @@ func (t *stdioTransport) roundTrip(ctx context.Context, req json.RawMessage) (js
 		t.killProcessGroup()
 		return nil, fmt.Errorf("%w: %v", ErrTimeout, ctx.Err())
 	case <-t.done:
-		return nil, fmt.Errorf("%w: process exited: %v", ErrTransport, t.waitErr)
+		return nil, t.processExitErr()
 	case r := <-ch:
+		if r.err != nil {
+			// Stdout often EOFs before Wait returns. Prefer ProcessExitError so
+			// exit status and stderr are never dropped together on this race.
+			if err := t.waitProcessExit(200 * time.Millisecond); err != nil {
+				return nil, err
+			}
+			return r.raw, r.err
+		}
 		return r.raw, r.err
+	}
+}
+
+func (t *stdioTransport) processExitErr() error {
+	stderr := ""
+	if t.stderr != nil {
+		stderr = t.stderr.String()
+	}
+	return processExitFromWait(t.waitErr, stderr)
+}
+
+// waitProcessExit waits briefly for the child to finish and, if it has,
+// returns a ProcessExitError. Returns nil if the process is still running.
+func (t *stdioTransport) waitProcessExit(grace time.Duration) error {
+	select {
+	case <-t.done:
+		return t.processExitErr()
+	case <-time.After(grace):
+	}
+	select {
+	case <-t.done:
+		return t.processExitErr()
+	default:
+		return nil
 	}
 }
 
@@ -193,4 +228,3 @@ func truncateForErr(b []byte) string {
 
 // stdioSysProcAttr is provided per-OS.
 // killProcessGroup is provided per-OS.
-

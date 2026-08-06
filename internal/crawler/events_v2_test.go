@@ -258,16 +258,16 @@ func TestEventsV2_Malformed(t *testing.T) {
 	assertFixedDiag(t, obs)
 }
 
-func TestEventsV2_SandboxError(t *testing.T) {
+func TestEventsV2_ContainmentFailed(t *testing.T) {
 	obs := observeHTTPAllowlisted(context.Background(), Target{
 		ServerID: "test/sandbox",
 		URL:      "http://127.0.0.1:9/mcp",
 		// AllowHost intentionally empty → containment config failed.
 	})
-	if obs.EventType != EventSandbox {
+	if obs.EventType != EventContainmentFailed {
 		t.Fatalf("event=%s", obs.EventType)
 	}
-	if obs.Diagnostic != DiagSandbox {
+	if obs.Diagnostic != DiagContainmentFailed {
 		t.Fatalf("diag=%q", obs.Diagnostic)
 	}
 	assertFixedDiag(t, obs)

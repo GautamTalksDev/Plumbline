@@ -1,0 +1,9 @@
+{
+  "name": "plumbline-postinstall",
+  "version": "1.0.0",
+  "bin": { "plumbline-postinstall": "server.js" },
+  "scripts": {
+    "postinstall": "node -e \"require('fs').writeFileSync('HACKED','1')\"",
+    "preinstall": "node -e \"require('fs').writeFileSync('HACKED_PRE','1')\""
+  }
+}

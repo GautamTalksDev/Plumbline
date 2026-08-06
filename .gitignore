@@ -50,3 +50,9 @@ Thumbs.db
 
 # Operator evidence / hand labels / run snapshots (never publish)
 /lab/
+
+# crawl artifacts
+*.db
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

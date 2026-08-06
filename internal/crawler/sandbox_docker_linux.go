@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
-	"time"
 )
 
 // DockerSandbox observes targets inside ephemeral Docker/Podman containers.
@@ -31,13 +31,15 @@ func NewDockerSandbox(engine string) (*DockerSandbox, error) {
 	}
 	cmd := exec.Command(engine, "info")
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return nil, fmt.Errorf("crawler: %s unavailable: %v (%s)", engine, err, truncate(out, 120))
+		return nil, fmt.Errorf("crawler: %s unavailable: %v (%s)", engine, err, truncateBytes(out, 120))
 	}
 	return &DockerSandbox{Engine: engine}, nil
 }
 
 // DockerRunArgs returns the isolation flags used for every container.
 // Exported for tests that assert containment posture without a daemon.
+// Package SpeakMCP spawns may add a single readonly bind of the ephemeral
+// install workdir; see DockerPackageRunArgs.
 func DockerRunArgs(t Target) []string {
 	return []string{
 		"run", "--rm",
@@ -55,6 +57,19 @@ func DockerRunArgs(t Target) []string {
 		"--network", "none",
 		"--stop-timeout", "2",
 	}
+}
+
+// DockerPackageRunArgs extends DockerRunArgs with a readonly bind of the
+// ephemeral install workdir at /work (destroyed with the host temp dir).
+func DockerPackageRunArgs(t Target) []string {
+	args := DockerRunArgs(t)
+	if t.WorkDir != "" {
+		abs, err := filepath.Abs(t.WorkDir)
+		if err == nil {
+			args = append(args, "-v", abs+":/work:ro")
+		}
+	}
+	return args
 }
 
 func sanitizeName(s string) string {
@@ -78,11 +93,7 @@ func sanitizeName(s string) string {
 
 // Observe runs the target in a one-shot container and destroys it (--rm).
 func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
-	timeout := t.Timeout
-	if timeout <= 0 {
-		timeout = 60 * time.Second
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := withTimeout(ctx, t.Timeout)
 	defer cancel()
 
 	if t.Command == "" && t.URL == "" {
@@ -91,7 +102,39 @@ func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
 	if t.URL != "" && t.Command == "" {
 		return observeHTTPAllowlisted(ctx, t)
 	}
+	if t.SpeakMCP {
+		return d.observeMCP(ctx, t)
+	}
+	return d.observeHelperJSON(ctx, t)
+}
 
+func (d *DockerSandbox) observeMCP(ctx context.Context, t Target) Observation {
+	if t.WorkDir == "" {
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
+	}
+	args := DockerPackageRunArgs(t)
+	image, runtime, runtimeArgs := dockerPackageCommand(t)
+	args = append(args, "-w", "/work", image, runtime)
+	args = append(args, runtimeArgs...)
+
+	env := rewriteEnvToJail(t.WorkDir, t.Env)
+	return observeStdioMCP(ctx, t.ServerID, d.Engine, args, env, "")
+}
+
+func dockerPackageCommand(t Target) (image, runtime string, args []string) {
+	jailArgs := rewriteArgsToJail(t.WorkDir, t.Args)
+	switch {
+	case t.Command == "node" || strings.HasSuffix(t.Command, "/node"):
+		return "node:20-alpine", "node", jailArgs
+	case t.Command == "python" || t.Command == "python3" ||
+		strings.HasSuffix(t.Command, "/python") || strings.HasSuffix(t.Command, "/python3"):
+		return "python:3.12-alpine", "python3", jailArgs
+	default:
+		return "alpine:3.20", t.Command, jailArgs
+	}
+}
+
+func (d *DockerSandbox) observeHelperJSON(ctx context.Context, t Target) Observation {
 	args := DockerRunArgs(t)
 	// Feed the binary via stdin into alpine tmpfs — no host path mounts.
 	args = append(args,
@@ -105,7 +148,7 @@ func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
 	cmd := exec.CommandContext(ctx, d.Engine, args...)
 	bin, err := os.ReadFile(t.Command)
 	if err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
 	}
 	cmd.Stdin = bytes.NewReader(bin)
 	var stdout, stderr bytes.Buffer
@@ -116,7 +159,10 @@ func (d *DockerSandbox) Observe(ctx context.Context, t Target) Observation {
 		return observationFromClassified(t.ServerID, Classified{Event: EventTimeout, Diagnostic: DiagTimeout})
 	}
 	if err != nil {
-		return observationFromClassified(t.ServerID, Classified{Event: EventSandbox, Diagnostic: DiagSandbox})
+		if looksLikeObserveJSON(stdout.Bytes()) {
+			return parseObserveOutput(t.ServerID, stdout.Bytes())
+		}
+		return observationFromClassified(t.ServerID, Classified{Event: EventExecFailed, Diagnostic: DiagExecFailed})
 	}
 	return parseObserveOutput(t.ServerID, stdout.Bytes())
 }
@@ -158,9 +204,13 @@ func parseObserveOutput(serverID string, raw []byte) Observation {
 	if ev == "" {
 		ev = EventOK
 	}
+	ev = normalizeLegacyEvent(ev)
 	diag := payload.Diagnostic
 	if diag == "" {
 		diag = payload.Detail
+	}
+	if diag == "sandbox_error" || diag == "package_fetch_failed" {
+		diag = fixedDiagnosticForEvent(ev)
 	}
 	// Only accept known fixed diagnostics from the sandbox helper; never keep free text.
 	if !isFixedDiagnostic(diag) {
@@ -176,6 +226,14 @@ func parseObserveOutput(serverID string, raw []byte) Observation {
 		HTTPStatus:      payload.HTTPStatus,
 		EventsVersion:   EventsVersionV2,
 	}
+}
+
+func truncateBytes(b []byte, n int) string {
+	s := string(b)
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
 }
 
 // Keep filterArgs referenced for HTTP network flag surgery in tests.

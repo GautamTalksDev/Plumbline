@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-// PackageFetcher downloads package bytes during the bounded fetch phase.
-// Implementations must contact only package-registry hosts.
+// PackageFetcher is retained for tests that stage bytes; production uses PackageInstaller.
 type PackageFetcher interface {
 	Fetch(ctx context.Context, pkg Package, latestVersion string, destDir string) (localPath string, err error)
 }
 
 // HTTPPackageFetcher fetches npm tarballs / PyPI files with an allowlisted client.
+// Prefer CLIPackageInstaller for tier-2; this remains for tooling/tests.
 type HTTPPackageFetcher struct {
 	Client    *http.Client
 	UserAgent string
@@ -198,40 +198,4 @@ func downloadFile(ctx context.Context, client *http.Client, ua, rawURL, dest str
 	defer f.Close()
 	_, err = io.Copy(f, io.LimitReader(resp.Body, 64<<20))
 	return err
-}
-
-// observePackageFetchThenSpawn downloads the package (allowlisted hosts only),
-// then runs tools/list inside the existing sandbox with default-deny network.
-func observePackageFetchThenSpawn(ctx context.Context, sb Sandbox, fetcher PackageFetcher, srv RegistryServer, latest string) Observation {
-	pkg, ok := PrimaryPackage(srv)
-	if !ok {
-		return observationFromClassified(srv.Name, Classified{Event: EventRefused, Diagnostic: DiagNoTarget})
-	}
-	if !Pollable(pkg.RegistryType) {
-		return observationFromClassified(srv.Name, Classified{Event: EventUnpollable, Diagnostic: DiagUnpollable})
-	}
-	if fetcher == nil {
-		return observationFromClassified(srv.Name, Classified{Event: EventFetchError, Diagnostic: DiagFetchError})
-	}
-	dir, err := os.MkdirTemp("", "plumbline-fetch-*")
-	if err != nil {
-		return observationFromClassified(srv.Name, Classified{Event: EventFetchError, Diagnostic: DiagFetchError})
-	}
-	defer os.RemoveAll(dir)
-
-	localPath, err := fetcher.Fetch(ctx, pkg, latest, dir)
-	if err != nil {
-		return observationFromClassified(srv.Name, Classified{Event: EventFetchError, Diagnostic: DiagFetchError})
-	}
-
-	// Spawn uses the existing sandbox unchanged (network none). The staged
-	// package path is passed as the command target for the observe helper.
-	t := Target{
-		ServerID: srv.Name,
-		Command:  localPath,
-		Args:     []string{"--plumbline-package", pkg.RegistryType, pkg.Identifier, latest},
-		Env:      []string{"PLUMBLINE_PACKAGE_FILE=" + localPath},
-		Timeout:  60 * time.Second,
-	}
-	return sb.Observe(ctx, t)
 }
