@@ -191,11 +191,15 @@ func downloadFile(ctx context.Context, client *http.Client, ua, rawURL, dest str
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("download HTTP %d", resp.StatusCode)
 	}
-	f, err := os.Create(dest)
+	f, err := os.Create(dest) //nolint:gosec // G304 -- dest is under the install workdir we created
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = io.Copy(f, io.LimitReader(resp.Body, 64<<20))
-	return err
+	if _, err := io.Copy(f, io.LimitReader(resp.Body, 64<<20)); err != nil {
+		_ = f.Close()
+		return err
+	}
+	// Close must be checked: a buffered write can fail at flush time, and a
+	// silently truncated download becomes a mystery install failure.
+	return f.Close()
 }

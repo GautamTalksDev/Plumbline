@@ -169,10 +169,8 @@ func TestDiscoverPathsUseOSJoin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if runtime.GOOS == "windows" {
-		if strings.Contains(p, "/") && !strings.Contains(p, `\`) {
-			// filepath may still use \ on Windows
-		}
+	if runtime.GOOS == "windows" && strings.Contains(p, "/") && !strings.Contains(p, `\`) {
+		t.Fatalf("path uses forward slashes only on Windows, expected filepath separators: %s", p)
 	}
 	if !strings.Contains(p, "plumbline") || !strings.Contains(p, "baseline.json") {
 		t.Fatalf("path=%s", p)

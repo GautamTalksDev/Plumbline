@@ -58,7 +58,7 @@ func Load() (*File, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	b, err := os.ReadFile(p)
+	b, err := os.ReadFile(p) //nolint:gosec // G304 -- local baseline path under the user's plumbline config dir
 	if err != nil {
 		if os.IsNotExist(err) {
 			return newEmpty(), false, nil

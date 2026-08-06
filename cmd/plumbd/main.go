@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GautamTalksDev/Plumbline/internal/httpserver"
 	plog "github.com/GautamTalksDev/Plumbline/internal/log"
@@ -48,7 +49,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "plumbd: open log: %v\n", err)
 		os.Exit(2)
 	}
-	defer lg.Close()
+	defer func() { _ = lg.Close() }()
 
 	cfg := httpserver.Config{
 		Log:      lg,
@@ -66,13 +67,22 @@ func main() {
 	if cfg.Site != nil {
 		log.Printf("serving static site")
 	}
-	if err := http.ListenAndServe(*addr, srv.Handler()); err != nil {
+	httpSrv := &http.Server{
+		Addr:              *addr,
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 16,
+	}
+	if err := httpSrv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func loadPub(path string) (ed25519.PublicKey, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec // G304 -- operator-supplied Ed25519 public key path
 	if err != nil {
 		return nil, err
 	}

@@ -12,10 +12,35 @@ linters:
 linters-settings:
   govet:
     enable-all: true
+    disable:
+      # Idiomatic Go: `if err := f(); err != nil` inside a scope that
+      # already has an err. Not a bug class we care about.
+      - shadow
+      # Struct field reordering for padding. This project is bound by
+      # network I/O and subprocess spawning, not struct layout.
+      - fieldalignment
   gosec:
     excludes: []
+  errcheck:
+    exclude-functions:
+      # Deferred closes on readers and response bodies: a failed close on a
+      # read path cannot lose data. Writes are checked explicitly.
+      - (io.Closer).Close
+      - (*database/sql.Rows).Close
+      # Terminal output; a failed write to stdout is not actionable.
+      - fmt.Fprintf
+      - fmt.Fprintln
+      - fmt.Fprint
+      # Cleanup of temp dirs we created; failure is not actionable.
+      - os.RemoveAll
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    # Test fixtures deliberately use variable paths and permissive perms.
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck

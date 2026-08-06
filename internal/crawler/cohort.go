@@ -47,11 +47,11 @@ func LoadFrozenCohort(path string) (map[string]bool, error) {
 	if path == "" {
 		return nil, nil
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // G304 -- operator-supplied frozen cohort member list path
 	if err != nil {
 		return nil, fmt.Errorf("crawler: cohort file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	out := map[string]bool{}
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {

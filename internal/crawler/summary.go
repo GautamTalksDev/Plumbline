@@ -57,7 +57,7 @@ func WriteSummaryAtomic(path string, sum Summary) error {
 	if path == "" {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { //nolint:gosec // G301 -- public summary.json parent directory
 		return err
 	}
 	b, err := json.MarshalIndent(sum, "", "  ")
@@ -66,7 +66,7 @@ func WriteSummaryAtomic(path string, sum Summary) error {
 	}
 	b = append(b, '\n')
 	tmp := path + ".tmp"
-	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644) //nolint:gosec // G302 -- public summary artifact, world-readable by design
 	if err != nil {
 		return err
 	}

@@ -120,7 +120,7 @@ type Observation struct {
 }
 
 // Run executes a two-tier crawl: version poll → targeted spawn → checkpoint.
-func Run(ctx context.Context, cfg Config) (Summary, error) {
+func Run(ctx context.Context, cfg Config) (sum Summary, err error) {
 	if !cfg.SkipLiveGuard && os.Getenv("PLUMBLINE_CRAWL_I_UNDERSTAND") != "1" {
 		return Summary{}, fmt.Errorf("crawler: refuse to start: set PLUMBLINE_CRAWL_I_UNDERSTAND=1 after reading docs/CRAWLING.md and passing containment tests")
 	}
@@ -191,9 +191,15 @@ func Run(ctx context.Context, cfg Config) (Summary, error) {
 	if err != nil {
 		return Summary{}, err
 	}
-	defer lg.Close()
+	defer func() {
+		// Write path: a failed close means appends may not have reached disk.
+		// Surface it rather than reporting success.
+		if cerr := lg.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
-	sum := Summary{
+	sum = Summary{
 		RunID:       st.RunID,
 		EventCounts: map[string]int{},
 		Resumed:     resumed,

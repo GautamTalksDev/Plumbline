@@ -23,7 +23,7 @@ type stdioTransport struct {
 }
 
 func dialStdio(lifeCtx context.Context, spec ServerSpec) (transport, error) {
-	cmd := exec.Command(spec.Command, spec.Args...)
+	cmd := exec.Command(spec.Command, spec.Args...) //nolint:gosec // G204 -- command comes from the registry and is executed only inside the sandbox
 	cmd.Dir = spec.Dir
 	if len(spec.Env) > 0 {
 		cmd.Env = append(os.Environ(), spec.Env...)
