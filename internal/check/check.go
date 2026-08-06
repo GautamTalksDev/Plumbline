@@ -195,7 +195,7 @@ func observeServer(ctx context.Context, opt Options, srv discover.Server) ([]Too
 	if err != nil {
 		return nil, nil, fmt.Errorf("connect: %w", err)
 	}
-	defer sess.Close()
+	defer func() { _ = sess.Close() }()
 
 	list, err := sess.ListTools(ctx)
 	if err != nil {

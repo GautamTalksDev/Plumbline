@@ -26,7 +26,7 @@ func observeStdioMCP(ctx context.Context, serverID, command string, args, env []
 	if err != nil {
 		return observationFromSpawnErr(serverID, err)
 	}
-	defer sess.Close()
+	defer func() { _ = sess.Close() }()
 	list, err := sess.ListTools(ctx)
 	if err != nil {
 		return observationFromSpawnErr(serverID, err)
@@ -104,7 +104,7 @@ func copyTree(src, dst string) error {
 		}
 		target := filepath.Join(dst, rel)
 		if info.IsDir() {
-			return os.MkdirAll(target, 0o755)
+			return os.MkdirAll(target, 0o750)
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
 			link, err := os.Readlink(path)
@@ -119,19 +119,19 @@ func copyTree(src, dst string) error {
 }
 
 func copyFile(src, dst string, mode os.FileMode) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return err
 	}
-	in, err := os.Open(src)
+	in, err := os.Open(src) //nolint:gosec // G304 -- copy within install/jail trees we created
 	if err != nil {
 		return err
 	}
-	defer in.Close()
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
+	defer func() { _ = in.Close() }()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode) //nolint:gosec // G304 -- copy within install/jail trees we created
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 	if _, err := io.Copy(out, in); err != nil {
 		return err
 	}

@@ -19,14 +19,14 @@ func LoadOptOut(path string) (*OptOutList, error) {
 	if path == "" {
 		return out, nil
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // G304 -- operator-supplied opt-out list path
 	if err != nil {
 		if os.IsNotExist(err) {
 			return out, nil
 		}
 		return nil, fmt.Errorf("crawler: opt-out: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())

@@ -29,3 +29,8 @@ sandbox-side failures inside the `protocol_error` sample. The 37
 This limitation is stated here so later PASS/FAIL on KT-1/KT-2 is read
 against an honest denominator, not a classifier tuned until the gate
 number looked right.
+
+The full freeze-time limitations ledger (coverage, observability, gates,
+method, engineering debts) is maintained in
+[`docs/LIMITATIONS.md`](docs/LIMITATIONS.md). Items are added when discovered;
+nothing is removed.

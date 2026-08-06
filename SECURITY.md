@@ -13,6 +13,10 @@ Email the maintainer via the contact method listed in the GitHub repository
 profile, or use GitHub's private vulnerability reporting if enabled for this
 repository.
 
+See also [DISCLOSURE.md](DISCLOSURE.md) for coordinated disclosure of findings
+about observed servers, and for the vulnerability-reporting timelines that apply
+to Plumbline itself.
+
 Please include:
 
 - A description of the issue

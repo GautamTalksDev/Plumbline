@@ -59,7 +59,7 @@ func main() {
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil { //nolint:gosec // G301 -- public cohort list parent directory
 		fatal(err)
 	}
 	var b strings.Builder
@@ -71,7 +71,7 @@ func main() {
 		b.WriteString(id)
 		b.WriteByte('\n')
 	}
-	if err := os.WriteFile(outPath, []byte(b.String()), 0o644); err != nil {
+	if err := os.WriteFile(outPath, []byte(b.String()), 0o644); err != nil { //nolint:gosec // G306 -- public cohort member list, world-readable by design
 		fatal(err)
 	}
 
@@ -133,7 +133,7 @@ above, or by calling `+"`crawler.InControlCohort(id)`"+` ∩
 `+"`crawler.CohortEligible(server)`"+` in Go.
 `, packagesTotal, len(eligible), len(members))
 
-	if err := os.WriteFile(mdPath, []byte(md), 0o644); err != nil {
+	if err := os.WriteFile(mdPath, []byte(md), 0o644); err != nil { //nolint:gosec // G306 -- public COHORT.md, world-readable by design
 		fatal(err)
 	}
 	fmt.Printf("packages=%d eligible=%d cohort=%d wrote %s and %s\n", packagesTotal, len(eligible), len(members), outPath, mdPath)

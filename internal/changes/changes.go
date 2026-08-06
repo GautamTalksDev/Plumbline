@@ -28,19 +28,15 @@ type Change struct {
 
 // Options filters Detect results.
 type Options struct {
-	Since     int64             // only changes where new_idx >= Since
-	Severity  classify.Severity // minimum severity (empty = all including NONE)
-	Limit     int
-	SkipCrawl bool // skip _crawl_status tool rows
+	Since    int64             // only changes where new_idx >= Since
+	Severity classify.Severity // minimum severity (empty = all including NONE)
+	Limit    int
 }
 
 // Detect walks the log and finds consecutive hash changes per server/tool.
 func Detect(entries []log.StoredEntry, opt Options) ([]Change, error) {
 	if opt.Limit <= 0 {
 		opt.Limit = 200
-	}
-	if opt.SkipCrawl {
-		// default true for public site
 	}
 	type key struct{ s, t string }
 	last := map[key]log.StoredEntry{}
