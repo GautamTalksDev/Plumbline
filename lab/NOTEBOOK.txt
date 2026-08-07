@@ -1,0 +1,169 @@
+Plumbline lab notebook
+======================
+
+Plain text. Date, run, observations, surprises.
+No launches. No posts. No tweets. Six weeks of evidence.
+
+----
+date: 2026-08-05
+run: week-1 crawl started (ops setup + first live run)
+observations:
+  - Scheduled weekly crawl via ops/systemd timer (next: Mon 2026-08-10) + optional GHA cron.
+  - Monitoring script, MEDIUM+ export, labels rubric, IDEAS.md (15 deferred entries).
+  - Containment tests already passed in CP-8; live registry gated by
+    PLUMBLINE_CRAWL_I_UNDERSTAND=1 on the operator host.
+  - Week-1 crawl launched 2026-08-05 via scripts/run-weekly-crawl.sh (background).
+    Signed checkpoint + lab/runs/2026-08-05/ artifacts land when it finishes.
+  - DoD still requires five more consecutive weekly crawls after this one completes.
+surprises:
+  - GitHub/Cloudflare deploy still unavailable in this environment; evidence
+    series runs on the operator Linux host (systemd), not waiting on Pages.
+
+----
+date: 2026-08-05
+run: CP-11 kill-test evaluation (RESULTS.md)
+observations:
+  - Evaluated against pre-registered KT-1/KT-2 thresholds from CP-0 README.
+  - Week-1 crawl still in progress (~1574 servers completed); 0 checkpoints;
+    0 longitudinal hash changes; 0 hand labels.
+  - KT-1 FAIL; KT-2 FAIL. Negative result published in RESULTS.md.
+  - No third-party server named; no maintainer notice required.
+surprises:
+  - Evaluating before six weekly checkpoints forces an honest protocol FAIL
+    rather than a measured <1% drift FAIL — still a stop under pre-registration.
+
+----
+(append further notes below only if opening a newly pre-registered study)
+----
+date: 2026-08-05
+run_dir: lab/runs/2026-08-05
+exit: 0
+label: week-0 dry run — NOT counted toward the six-week series
+observations:
+  - Manual ./scripts/run-weekly-crawl.sh --summary --cohort (first live two-tier path).
+  - Tier 1: 10738/10738 packages polled in ~789s (~13 min). Wall clock fine.
+  - Tier 2: all 537 cohort members attempted; cohort_complete=true.
+  - summary.json complete=true; exactly one signed checkpoint (tree_size=22696).
+  - Event distribution FAIL for Monday: tier-2 ok=0%. Breakdown:
+      sandbox_error 474 (88.3%), unpollable 58 (10.8%), fetch_error 5 (0.9%).
+  - tools_logged=0. Spawn path is broken: observePackageFetchThenSpawn sets
+    Target.Command to the downloaded package archive (package.tgz/pypi) instead
+    of an observe helper that speaks --plumbline-package. Sandbox then tries to
+    exec the archive → containment_failed. Docker daemon was also down (WSL),
+    so UnshareJail was selected — but Docker would hit the same Command bug.
+  - summary.counts_toward_six_week_series is true in the file; treat as false
+    by operator declaration (shakedown of brand-new code).
+surprises:
+  - ok rate is not "lower than remotes" — it is zero. Monday slips until spawn
+    wiring is fixed and a second dry run shows a real ok distribution.
+
+----
+date: 2026-08-05
+note: spawn-path fix landed (install+entrypoint; event split; cohort npm/pypi-only;
+  --dry-run; week-0 summary rewritten counts_toward=false). Next action: another
+  manual dry run before Monday; gate 5 still requires cohort ok well above 50%.
+----
+date: 2026-08-05
+run_dir: lab/runs/2026-08-05
+exit: 143
+observations: (fill by hand this week)
+surprises: (fill by hand this week)
+
+----
+date: 2026-08-05/06
+run: dry-run1 (dedicated log crawl-log-dryrun1.sqlite; --dry-run)
+observations:
+  - Complete exit=0; counts_toward=false; containment_failed=0.
+  - Cohort 479: ok=182 (38.0%). Gate 5 FAIL (need >>50%).
+  - Dominant residual: exec_failed=236 (49.3%). Then malformed=27,
+    install_failed=11, entrypoint_unresolved=9, protocol_error=9, timeout=5.
+  - tools_logged=2996 (handshake works when ok).
+  - Wall: tier1 26.2m, tier2 21.4m, total ~50.5m — fine for weekly budget.
+  - Restarted once: same-day run_id collided with week-0 HasTool rows; used
+    fresh sqlite log. Fix run_id uniqueness before Monday.
+surprises:
+  - ok jumped from 0% to 38% — install path works — but exec_failed is now
+    the structural problem. Monday clock does not start.
+
+----
+date: 2026-08-06
+run: dryrun2 (stderr capture + pypi entrypoint fix + spawn classifiers)
+observations:
+  - cffi-gen-src entrypoints: 0 (fix confirmed).
+  - Gate: raw ok 217/479 (45.3%); observable 474; ok/obs 45.8%; unexplained exec_failed 181.
+  - Gate 5 FAIL vs ≥90% on observable.
+  - credentials_required only 5; most exec_failed still have empty stderr_preview — capture
+    path incomplete for jailed exits; next diagnosis before another run.
+  - containment_failed 0; tools_logged 3998; duration ~76m.
+----
+date: 2026-08-06
+run: dryrun6 (G5a–d after tail-capture, packageArgs, exclusions)
+observations:
+  - G5a FAIL unexplained 37/479 (7.7%); G5b PASS blind=0; G5c PASS obs=307; G5d FAIL ok/obs 76.2%.
+  - Exclusions: cred 57, net 7, runtime 25, broken 60, usage 13, silent_exit 10.
+  - packageArguments persistence fixed; one-shot-ui and basic-memory → ok.
+  - 10 silent_exit: exit 0 empty stderr no MCP — ecosystem \"success with no work\".
+surprises: clock still off; gate moved correctly, residual still needs classifier work.
+
+----
+date: 2026-08-06
+run: round7 (pre-reg → hand-probe → no new matchers → residual write-up)
+observations:
+  - Bound in docs/ROUND7-PREREG.md before looking at the 37 (commit a9e0afc).
+  - Hand-probed 5/5 malformed + 5/10 protocol_error: 8 theirs (stdout pollution,
+    bare initialize, tools/list crash), 2 ours (host ok, jail MODULE_NOT_FOUND).
+  - R7-2 protocol_broken NOT activated (sandbox bugs in sample).
+  - R7-0 held: zero new spawn_matchers substrings.
+  - Residual 37 characterized in aggregate in docs/COHORT.md; RESULTS.md limitation.
+  - Gates unchanged vs dryrun6: G5a FAIL 7.7%, G5b PASS, G5c PASS 307, G5d FAIL 76.2%.
+  - Stop rule: week-1 clock starts Monday either way.
+surprises: two protocol_error rows are jail faults, not protocol_broken — exactly the
+  failure mode pre-reg was written to catch.
+
+----
+date: 2026-08-06
+run: package_broken contamination check (pre-Monday measurement)
+observations:
+  - Hypothesis: jail MODULE_NOT_FOUND seen in 2/10 protocol_error probes might
+    contaminate package_broken (n=60), the largest exclusion class.
+  - Hand-probed 10 random package_broken on host (seed 20260806): **0/10 host-ok**.
+  - Failures reproduce on host (mostly missing mcp.server.fastmcp / load errors).
+  - package_broken treated as sound for denominator freeze; Monday holds.
+surprises: none — contamination rate 0/10; no fix, no delay.
+
+----
+date: 2026-08-06
+run: pre-Monday housekeeping (contamination caveat + secrets + key sep)
+observations:
+  - COHORT.md: n=10 rule-of-three bound (~25% at 95% CI); R7-1 jail bug unfixed on record.
+  - gitleaks detect (lab/ excluded): no leaks; 15 commits scanned.
+  - Repo public flip: blocked (gh auth skipped / not logged in) — leave private; Monday holds.
+  - Signing private key moved off crawl home to ~/plumbline-offline/; crawl defaults to --defer-sign;
+    plumb sign-checkpoint added for post-run manual/offline signing.
+surprises: none.
+----
+date: 2026-08-06
+run_dir: lab/runs/2026-08-06
+exit: 0
+observations: (fill by hand this week)
+surprises: (fill by hand this week)
+
+
+2026-08-06 — WEEK 1 (first counted run)
+Triggered via systemd (not nohup). Complete: tier1 10,782 polled, cohort
+479 complete, exit 0, ~68 min wall.
+Checkpoint signed after the fact from offline key: tree_size 34198,
+2 checkpoints total.
+MEDIUM+ queue: 0 rows. Expected — no prior observation to diff against.
+Drift detection effectively begins week 2.
+
+Two bugs found by testing the timer path rather than trusting it:
+1. systemd unit had no PATH, so it found apt Go 1.22.2 instead of
+   /usr/local/go 1.23.6 and died trying to fetch a toolchain. Every
+   scheduled run would have silently failed. Fixed: Environment=PATH and
+   GOTOOLCHAIN=local in the unit.
+2. Persistent=true caused catch-up firing when the schedule moved.
+   Fixed: Persistent=false, RandomizedDelaySec=0.
+
+Schedule moved Mon -> Fri to keep a genuine weekly cadence from this run.
+Next: Fri 2026-08-14 06:20. Remaining: 14, 21, 28 Aug, 4, 11 Sep.

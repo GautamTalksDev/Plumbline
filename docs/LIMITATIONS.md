@@ -150,6 +150,10 @@ by moving the thresholds.
   description changes shipped without a version bump.
 - **Ground truth is hand-labelled by one person** — the author. There is no
   second labeller and no inter-rater agreement statistic.
+- **Week 1 produces no drift candidates.** The first counted run establishes
+  the baseline; there is no prior observation to diff against, so the MEDIUM+
+  queue is empty by construction. Effective drift observation spans weeks
+  2–6, i.e. five comparison intervals, not six.
 
 ---
 
