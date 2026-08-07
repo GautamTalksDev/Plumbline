@@ -3,73 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Plumbline — MCP tool-metadata transparency</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Plumbline — MCP tool-metadata transparency log</title>
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
+  <div class="study-banner" id="study-banner" role="status">
+    Study in progress. Week 1 of 6. Findings are not published until the
+    pre-registered kill tests are evaluated. See
+    <a href="docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
+  </div>
   <div class="wrap">
-    <nav class="nav">
-      <a class="brand" href="index.html">Plumbline</a>
-      <a href="changes.html">Changes</a>
-      <a href="server.html">Servers</a>
-      <a href="taxonomy.html">Taxonomy</a>
-      <a href="docs/VERIFY.html">Verify</a>
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="./" aria-current="page">Plumbline</a>
+      <a href="log/">Log</a>
+      <a href="verify/">Verify</a>
+      <a href="taxonomy/">Taxonomy</a>
+      <a href="server/">Servers</a>
     </nav>
 
-    <p class="hero-brand">Plumbline</p>
-    <p class="hero-lead">A transparency log for MCP tool metadata — so you can see when a published tool quietly changes what it asks a model to do.</p>
-
-    <div class="cta-row">
-      <a class="btn btn-primary" href="changes.html">Recent changes</a>
-      <a class="btn btn-ghost" href="docs/VERIFY.html">Verify the log</a>
-    </div>
-
-    <div class="pubkey-panel">
-      <div class="label">Log public key (Ed25519, hex)</div>
-      <code id="pubkey">loading…</code>
-      <p class="meta" style="margin-top:0.75rem;margin-bottom:0">Also at <a href="pubkey.txt">/pubkey.txt</a> and <a href="/pubkey">GET /pubkey</a>. Use with <code>plumb verify-log</code>.</p>
-    </div>
-
-    <h2>The problem</h2>
+    <h1>Plumbline</h1>
     <p>
-      MCP servers publish <strong>tool descriptions</strong> that steer model behavior.
-      After you install a server, that metadata can change — new URLs, new file paths,
-      softened permissions, or instructions that were not there yesterday — without a
-      release note you will notice.
-    </p>
-    <p>
-      Plumbline observes public tool metadata, hashes it into an <strong>append-only Merkle log</strong>,
-      and classifies diffs with a deterministic taxonomy. Anyone can check that the log
-      has not been rewritten using only the CLI and the published public key.
+      An append-only Merkle transparency log of publicly published MCP tool
+      metadata. It records what a tool claimed to do at observation time, as a
+      hash, so later changes are visible without trusting the operator.
     </p>
 
-    <h2>What this is not</h2>
+    <h2>What drift means here</h2>
     <p>
-      Not an app store. Not a reputation score. Not a sandbox for running tools.
-      It is a <strong>transparency log</strong>: signed tree heads, inclusion proofs,
-      consistency proofs — verifiable by people who do not trust the operator.
+      Drift is a post-publication change in a tool’s canonical metadata —
+      description, schemas, or annotations — relative to a prior observation of
+      the same server and tool. This site does not publish findings while the
+      study is running. The log itself is published so anyone can verify the
+      tree independently.
     </p>
+
+    <h2>Why a public log</h2>
+    <p>
+      A database you have to trust is not a transparency log. Signed tree heads,
+      inclusion proofs, and consistency proofs let a third party check that
+      history was not rewritten. That is the same idea as Certificate
+      Transparency and Sigstore Rekor, applied to MCP tool metadata.
+    </p>
+
+    <h2>How to verify it yourself</h2>
+    <p>
+      You do not need to trust this site. Download the static bundle and check
+      signatures with the CLI:
+    </p>
+    <pre class="mono">plumb verify-log --bundle https://&lt;this-host&gt;/log/</pre>
+    <p>
+      Full instructions: <a href="verify/">/verify/</a>.
+      The Ed25519 public key is at <a href="log/pubkey.txt">/log/pubkey.txt</a>.
+    </p>
+
+    <h2>Zero third-party requests</h2>
+    <p>
+      This site makes no analytics calls, loads no webfonts, and contacts no CDN.
+      Assets and JSON are self-hosted. That matches the CLI’s zero-egress
+      promise for local checks: nothing phones home.
+    </p>
+
+    <h2>Governance</h2>
+    <ul>
+      <li><a href="docs/ETHICS.md">ETHICS.md</a></li>
+      <li><a href="docs/DISCLOSURE.md">DISCLOSURE.md</a></li>
+      <li><a href="docs/LIMITATIONS.md">docs/LIMITATIONS.md</a></li>
+      <li><a href="docs/SPEC-TAXONOMY.md">SPEC-TAXONOMY.md</a></li>
+    </ul>
   </div>
   <script src="js/base.js"></script>
   <script src="js/ui.js"></script>
-  <script>
-    (function () {
-      var node = document.getElementById("pubkey");
-      function show(hex) {
-        PlumblineUI.text(node, hex);
-      }
-      PlumblineUI.getJSON("/pubkey")
-        .then(function (j) { show(j.public_key); })
-        .catch(function () {
-          fetch((window.PLUMBLINE_BASE||"/") + "pubkey.txt")
-            .then(function (r) { return r.text(); })
-            .then(function (t) { show(t.trim()); })
-            .catch(function () { PlumblineUI.text(node, "(pubkey unavailable)"); });
-        });
-    })();
-  </script>
+  <script src="js/banner.js"></script>
 </body>
 </html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Verify — Plumbline</title>
+  <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+  <div class="study-banner" id="study-banner" role="status">
+    Study in progress. Week 1 of 6. Findings are not published until the
+    pre-registered kill tests are evaluated. See
+    <a href="../docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
+  </div>
+  <div class="wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="../">Plumbline</a>
+      <a href="../log/">Log</a>
+      <a href="./" aria-current="page">Verify</a>
+      <a href="../taxonomy/">Taxonomy</a>
+      <a href="../server/">Servers</a>
+    </nav>
+
+    <h1>Verify the log without trusting us</h1>
+    <p>
+      You need only the <code class="mono">plumb</code> CLI, the published
+      Ed25519 public key, and a copy of the static bundle (this site’s
+      <code class="mono">/log/</code> directory, or a mirror of it).
+    </p>
+
+    <h2>1. Obtain the public key</h2>
+    <p>
+      Fetch <a href="../log/pubkey.txt">/log/pubkey.txt</a> over HTTPS, or use
+      the in-repo copy <code class="mono">docs/log-public-key.ed25519</code>.
+      Compare them; they must match.
+    </p>
+
+    <h2>2. Verify the static bundle</h2>
+    <pre class="mono">plumb verify-log --bundle https://&lt;this-host&gt;/log/ \
+  --pubkey-hex $(cat log/pubkey.txt)</pre>
+    <p>Or against a local checkout of the published files:</p>
+    <pre class="mono">plumb verify-log --bundle ./site/log \
+  --pubkey ./site/log/pubkey.txt</pre>
+
+    <h2>What that checks</h2>
+    <ul>
+      <li>Every checkpoint in <code class="mono">checkpoints.json</code> has a valid Ed25519 signature under the published key.</li>
+      <li>Consistency proofs between consecutive checkpoints verify (RFC 6962).</li>
+      <li>Exit code <code class="mono">0</code> means OK; <code class="mono">1</code> means a signature or consistency failure (the failing checkpoint is named).</li>
+    </ul>
+
+    <h2>3. Optional: live HTTP API</h2>
+    <p>
+      If a conforming log HTTP API is available, the same CLI accepts
+      <code class="mono">--url</code> and additionally re-hashes leaves and
+      checks inclusion proofs. See <a href="../docs/VERIFY.md">docs/VERIFY.md</a>.
+    </p>
+
+    <h2>Independent of this site</h2>
+    <p>
+      HTML and JavaScript on this origin are convenience only. Verification
+      does not require loading this page, enabling JavaScript, or trusting our
+      hosting. Anyone can re-host the <code class="mono">/log/</code> JSON and
+      point <code class="mono">plumb verify-log --bundle</code> at their mirror.
+    </p>
+  </div>
+  <script src="../js/base.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/banner.js"></script>
+</body>
+</html>

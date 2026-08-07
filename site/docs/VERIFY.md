@@ -54,7 +54,19 @@ verification fails.
 
 All endpoints are **read-only**. No authentication. No writes.
 
-## Running a log locally
+## Deploying the site
+
+The static site lives in [`site/`](../site/). Put **Cloudflare** (free tier) in
+front of `plumbd` for TLS, CDN caching, and edge rate limits.
+
+GitHub Pages workflow: [`.github/workflows/pages.yml`](../.github/workflows/pages.yml).
+After the first successful deploy the public site is at:
+
+`https://gautamtalksdev.github.io/Plumbline/`
+
+Set repository variable `PLUMBLINE_API_ORIGIN` to your `plumbd` origin so the
+Pages site can call the live API. The Ed25519 public key is always published at
+`/pubkey.txt` on the static site and `GET /pubkey` on the API.
 
 ```bash
 # After a crawl (or test log) exists:

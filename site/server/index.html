@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Servers — Plumbline</title>
+  <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+  <div class="study-banner" id="study-banner" role="status">
+    Study in progress. Week 1 of 6. Findings are not published until the
+    pre-registered kill tests are evaluated. See
+    <a href="../docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
+  </div>
+  <div class="wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="../">Plumbline</a>
+      <a href="../log/">Log</a>
+      <a href="../verify/">Verify</a>
+      <a href="../taxonomy/">Taxonomy</a>
+      <a href="./" aria-current="page">Servers</a>
+    </nav>
+
+    <h1>Server observations</h1>
+    <p>
+      Look up a registry server id. History shows date, canonical hash,
+      protocol version, and event type only — not tool descriptions, not
+      severity, not drift findings.
+    </p>
+
+    <div class="search-row" role="search">
+      <label class="sr-only" for="sid">Server id</label>
+      <input id="sid" type="search" name="sid" autocomplete="off"
+        placeholder="registry server id (e.g. io.github.example/server)"
+        spellcheck="false">
+      <button type="button" id="load">Load</button>
+    </div>
+    <p class="meta" id="status"></p>
+    <h2 id="server-id" class="mono"></h2>
+    <table class="table" aria-label="Observations">
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Hash</th>
+          <th scope="col">Protocol</th>
+          <th scope="col">Event</th>
+        </tr>
+      </thead>
+      <tbody id="obs"></tbody>
+    </table>
+  </div>
+  <script src="../js/base.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/banner.js"></script>
+  <script src="../js/server.js"></script>
+</body>
+</html>

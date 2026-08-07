@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Log — Plumbline</title>
+  <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+  <div class="study-banner" id="study-banner" role="status">
+    Study in progress. Week 1 of 6. Findings are not published until the
+    pre-registered kill tests are evaluated. See
+    <a href="../docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
+  </div>
+  <div class="wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="../">Plumbline</a>
+      <a href="./" aria-current="page">Log</a>
+      <a href="../verify/">Verify</a>
+      <a href="../taxonomy/">Taxonomy</a>
+      <a href="../server/">Servers</a>
+    </nav>
+
+    <h1>Signed log</h1>
+    <p class="muted">
+      Live state from the static bundle under <code class="mono">/log/</code>.
+      No findings are shown here — tree head and metadata only.
+    </p>
+    <p id="log-error" class="error" hidden></p>
+
+    <div class="stat-grid" aria-label="Log statistics">
+      <div class="stat"><span class="label">Tree size</span><span class="value" id="stat-tree">—</span></div>
+      <div class="stat"><span class="label">Entries</span><span class="value" id="stat-entries">—</span></div>
+      <div class="stat"><span class="label">Last run</span><span class="value" id="stat-lastrun">—</span></div>
+      <div class="stat"><span class="label">Checkpoints</span><span class="value" id="stat-checkpoints">—</span></div>
+      <div class="stat"><span class="label">Canon</span><span class="value" id="stat-canon">—</span></div>
+      <div class="stat"><span class="label">Taxonomy</span><span class="value" id="stat-taxonomy">—</span></div>
+    </div>
+
+    <h2>Latest signed tree head</h2>
+    <p class="muted">Root hash (full, copyable)</p>
+    <div class="hash-block">
+      <code class="hash" id="root-hash">loading…</code>
+      <div><button type="button" class="copy" id="root-hash-copy">Copy</button></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><span class="label">Checkpoint tree size</span><span class="value" id="cp-size">—</span></div>
+      <div class="stat"><span class="label">Signed at (UTC)</span><span class="value" id="cp-ts">—</span></div>
+    </div>
+    <p class="muted">Signature (base64)</p>
+    <div class="hash-block">
+      <code class="hash" id="cp-sig">—</code>
+      <div><button type="button" class="copy" id="cp-sig-copy">Copy</button></div>
+    </div>
+
+    <h2>Public key</h2>
+    <p>
+      Ed25519 verifying key for <code class="mono">plumbline-checkpoint-v1</code>
+      payloads. Displayed in full.
+    </p>
+    <div class="hash-block">
+      <code class="key" id="pubkey">loading…</code>
+      <div><button type="button" class="copy" id="pubkey-copy">Copy</button></div>
+    </div>
+    <p class="muted">Also at <a href="../log/pubkey.txt">/log/pubkey.txt</a>.</p>
+  </div>
+  <script src="../js/base.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/banner.js"></script>
+  <script src="../js/log.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-/* Resolve asset/API bases for root deploy (plumbd) and GitHub project pages. */
+/* Resolve asset base for root deploy and GitHub project pages. Zero network beyond self. */
 (function (global) {
   "use strict";
   var path = global.location.pathname;
@@ -7,8 +7,4 @@
     base = "/Plumbline/";
   }
   global.PLUMBLINE_BASE = base;
-  if (!global.PLUMBLINE_API) {
-    // Same origin when served by plumbd; override via api-origin.js on Pages.
-    global.PLUMBLINE_API = "";
-  }
 })(window);

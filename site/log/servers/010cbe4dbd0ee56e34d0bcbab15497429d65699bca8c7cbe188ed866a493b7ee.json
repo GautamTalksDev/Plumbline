@@ -1,0 +1,33 @@
+{
+  "id": "io.github.imouiche/mitre-attack-mcp-server",
+  "observations": [
+    {
+      "idx": 17807,
+      "date": "2026-08-05",
+      "hash": "sha256:8bcdaecb3e8e96b78a3f418181caa4fc5dd22873d351e2279af2934ad3970658",
+      "protocol_version": "",
+      "event_type": "version_poll"
+    },
+    {
+      "idx": 22236,
+      "date": "2026-08-05",
+      "hash": "sha256:4084df265c85680652104185e8e2f2a8c32e345f1ab87512aea1e93266f6a050",
+      "protocol_version": "",
+      "event_type": "status"
+    },
+    {
+      "idx": 29112,
+      "date": "2026-08-06",
+      "hash": "sha256:c05af91c5c11aa33d3595da3ba82756a422a7ebed003e85283cb8e4038a97dcb",
+      "protocol_version": "",
+      "event_type": "version_poll"
+    },
+    {
+      "idx": 33965,
+      "date": "2026-08-06",
+      "hash": "sha256:2faff4305cc7edc5794ce2e5517d34c321e5bbe56fe667ca58b52cc85253f9f7",
+      "protocol_version": "",
+      "event_type": "status"
+    }
+  ]
+}

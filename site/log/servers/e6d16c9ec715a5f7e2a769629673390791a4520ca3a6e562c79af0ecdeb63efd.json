@@ -1,0 +1,33 @@
+{
+  "id": "io.github.constripacity/claude-replay",
+  "observations": [
+    {
+      "idx": 16333,
+      "date": "2026-08-05",
+      "hash": "sha256:5295e7242337fff8fd3c3822a690b4f0b6da8a7f5de5c3f08b0d3c44931a8262",
+      "protocol_version": "",
+      "event_type": "version_poll"
+    },
+    {
+      "idx": 22383,
+      "date": "2026-08-05",
+      "hash": "sha256:ac44dbc0d2c7b5ec4ef76ee6be1d5758765e08d586d26a4274e19b05db2d2217",
+      "protocol_version": "",
+      "event_type": "status"
+    },
+    {
+      "idx": 27635,
+      "date": "2026-08-06",
+      "hash": "sha256:62b52bcf3968e19535940fd62d3a6414d277ffc6d3e81b8ccb7d9d9ab0d285a8",
+      "protocol_version": "",
+      "event_type": "version_poll"
+    },
+    {
+      "idx": 33796,
+      "date": "2026-08-06",
+      "hash": "sha256:251ffa271ab5e7e88f73f6dc90b25f3e4807b47ec861ec4f09c72a6b5e252c37",
+      "protocol_version": "",
+      "event_type": "status"
+    }
+  ]
+}

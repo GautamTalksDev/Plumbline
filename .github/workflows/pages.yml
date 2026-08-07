@@ -25,17 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Stage site
-        env:
-          # Repo variable only — never interpolate github.event.* into the shell.
-          PLUMBLINE_API_ORIGIN: ${{ vars.PLUMBLINE_API_ORIGIN }}
         run: |
           mkdir -p _site
           cp -a site/. _site/
           cp docs/log-public-key.ed25519 _site/pubkey.txt
-          if [ -n "$PLUMBLINE_API_ORIGIN" ]; then
-            printf 'window.PLUMBLINE_API = %q;\n' "$PLUMBLINE_API_ORIGIN" > _site/js/api-origin.js
-            sed -i 's#<script src="/js/ui.js"></script>#<script src="/js/api-origin.js"></script>\n  <script src="/js/ui.js"></script>#' _site/*.html _site/docs/*.html || true
-          fi
+          mkdir -p _site/log
+          cp docs/log-public-key.ed25519 _site/log/pubkey.txt
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: _site

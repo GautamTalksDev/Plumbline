@@ -22,17 +22,19 @@ import (
 
 // Result is the outcome of Verify.
 type Result struct {
-	OK              bool     `json:"ok"`
-	Endpoint        string   `json:"endpoint"`
-	TreeSize        int64    `json:"tree_size"`
-	RootHash        string   `json:"root_hash"`
-	PubkeyHex       string   `json:"pubkey_hex"`
-	CheckpointOK    bool     `json:"checkpoint_ok"`
-	ConsistencyOK   bool     `json:"consistency_ok"`
-	InclusionOK     bool     `json:"inclusion_ok"`
-	EntriesHashedOK bool     `json:"entries_hashed_ok"`
-	CheckedEntries  int      `json:"checked_entries"`
-	Errors          []string `json:"errors,omitempty"`
+	OK               bool     `json:"ok"`
+	Endpoint         string   `json:"endpoint"`
+	TreeSize         int64    `json:"tree_size"`
+	RootHash         string   `json:"root_hash"`
+	PubkeyHex        string   `json:"pubkey_hex"`
+	CheckpointOK     bool     `json:"checkpoint_ok"`
+	ConsistencyOK    bool     `json:"consistency_ok"`
+	InclusionOK      bool     `json:"inclusion_ok"`
+	InclusionSkipped bool     `json:"inclusion_skipped,omitempty"`
+	InclusionProofs  int      `json:"inclusion_proofs"` // proofs found in the bundle
+	EntriesHashedOK  bool     `json:"entries_hashed_ok"`
+	CheckedEntries   int      `json:"checked_entries"`
+	Errors           []string `json:"errors,omitempty"`
 }
 
 // Options controls Verify.

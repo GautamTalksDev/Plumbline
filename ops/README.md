@@ -64,6 +64,22 @@ hardware token / other host) and run `plumb sign-checkpoint` after each
 complete run. Only the public key remains in-repo
 (`docs/log-public-key.ed25519`) and as `~/.plumbline/signing.ed25519.pub`.
 
+### Publish static site bundle
+
+After signing the checkpoint, export the static JSON the site serves (no
+live API required):
+
+```bash
+plumb publish-bundle --log ~/.plumbline/crawl-log.sqlite \
+  --out site/log --week N \
+  --pubkey docs/log-public-key.ed25519
+plumb verify-log --bundle ./site/log --pubkey docs/log-public-key.ed25519
+```
+
+`--week` is the study week (1–6) shown in the site status banner via
+`meta.json`. Observation files contain hashes and metadata only — never
+tool descriptions or drift findings.
+
 ### Crawl host only (no GitHub Actions crawl)
 
 Weekly crawl runs on the operator Linux host via systemd. There is **no**
