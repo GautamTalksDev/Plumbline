@@ -97,7 +97,7 @@
 
   function escapeHref(href) {
     var s = String(href == null ? "" : href);
-    // Only allow relative paths and same-origin log paths — never javascript:
+    // Only allow relative paths and same-origin log paths, never javascript:
     if (/^\s*javascript:/i.test(s) || /^\s*data:/i.test(s)) return "#";
     return s;
   }
@@ -190,7 +190,9 @@
         a.href = href("docs/LIMITATIONS.md");
         a.textContent = "docs/LIMITATIONS.md";
         elBanner.appendChild(a);
-        elBanner.appendChild(document.createTextNode("."));
+        elBanner.appendChild(document.createTextNode(
+          ". Absence of findings on this site is not itself a finding."
+        ));
       })
       .catch(function () {
         /* noscript / static text already in HTML */

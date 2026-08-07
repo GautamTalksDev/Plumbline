@@ -1,4 +1,4 @@
-/* /server/ — search by server id; render observation history (hashes only). */
+/* /server/: search by server id; render observation history (hashes only). */
 (function () {
   "use strict";
   var UI = window.PlumblineUI;
@@ -27,7 +27,7 @@
           UI.text(status, "No observations for that server id.");
           return null;
         }
-        // Shard filename is two hex digits — never interpolate the raw id.
+        // Shard filename is two hex digits; never interpolate the raw id.
         var file = entry.file;
         if (!/^[0-9a-f]{2}\.json$/i.test(file)) {
           throw new Error("invalid server shard filename in index");

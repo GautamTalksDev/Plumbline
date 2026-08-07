@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Glossary: terms used on this site</title>
+  <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+  <div class="study-banner" id="study-banner" role="status">
+    Study in progress. Week 1 of 6. Findings are not published until the
+    pre-registered kill tests are evaluated. See
+    <a href="../docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
+  </div>
+  <div class="wrap prose">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="../">Plumbline</a>
+      <a href="../log/">Log</a>
+      <a href="../verify/">Verify</a>
+      <a href="../taxonomy/">Taxonomy</a>
+      <a href="../server/">Servers</a>
+      <a href="./" aria-current="page">Glossary</a>
+    </nav>
+
+    <h1>Glossary</h1>
+    <p class="lead">
+      Short definitions for terms used on this site. Each also appears in
+      context at first use on the front page where possible.
+    </p>
+
+    <dl class="glossary">
+      <dt>MCP</dt>
+      <dd>Model Context Protocol: a common way many AI assistants connect to external tools.</dd>
+
+      <dt>Tool metadata</dt>
+      <dd>The description, input and output schemas, and annotations a tool publishes so an assistant knows what the tool claims to do.</dd>
+
+      <dt>Canonical hash</dt>
+      <dd>A fingerprint of tool metadata after a fixed normalization step, so the same claim always hashes the same way.</dd>
+
+      <dt>Merkle tree</dt>
+      <dd>A tree of hashes ending in one root fingerprint for a whole batch of entries. Changing any entry changes the root.</dd>
+
+      <dt>Signed tree head</dt>
+      <dd>The Merkle root plus a digital signature, published so others can check that a specific tree state was attested by the log’s key.</dd>
+
+      <dt>Inclusion proof</dt>
+      <dd>Evidence that a specific entry is part of a tree with a given root.</dd>
+
+      <dt>Consistency proof</dt>
+      <dd>Evidence that a later tree still contains an earlier tree, so history was extended rather than rewritten.</dd>
+
+      <dt>Drift</dt>
+      <dd>A change in a tool’s canonical metadata relative to an earlier observation of the same server and tool.</dd>
+
+      <dt>Static bundle</dt>
+      <dd>The JSON files under <code class="mono">/log/</code> that anyone can download or mirror and check with <code class="mono">plumb verify-log --bundle</code>.</dd>
+    </dl>
+  </div>
+  <script src="../js/base.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/banner.js"></script>
+</body>
+</html>

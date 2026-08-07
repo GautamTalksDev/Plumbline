@@ -1,4 +1,4 @@
-/* /log/ — live tree head from static bundle JSON. */
+/* /log/: live tree head from static bundle JSON. */
 (function () {
   "use strict";
   var UI = window.PlumblineUI;
@@ -30,17 +30,17 @@
 
       setStat("stat-tree", String(meta.tree_size));
       setStat("stat-entries", String(meta.entry_count));
-      setStat("stat-lastrun", meta.last_run_date || "—");
+      setStat("stat-lastrun", meta.last_run_date || "-");
       setStat("stat-checkpoints", String(meta.checkpoint_count));
-      setStat("stat-canon", meta.canon_version || "—");
-      setStat("stat-taxonomy", meta.taxonomy_version || "—");
+      setStat("stat-canon", meta.canon_version || "-");
+      setStat("stat-taxonomy", meta.taxonomy_version || "-");
 
       showHash("root-hash", cp.root_hash || "");
       showHash("pubkey", pub);
       setStat("cp-size", String(cp.tree_size));
       setStat("cp-ts", cp.timestamp
         ? new Date(cp.timestamp * 1000).toISOString()
-        : "—");
+        : "-");
       showHash("cp-sig", cp.signature || "");
     })
     .catch(function (err) {

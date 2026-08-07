@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <title>Taxonomy — Plumbline</title>
+  <title>Taxonomy: how severity rules are defined</title>
   <link rel="stylesheet" href="../css/site.css">
 </head>
 <body>
@@ -14,20 +14,27 @@
     pre-registered kill tests are evaluated. See
     <a href="../docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
   </div>
-  <div class="wrap">
+  <div class="wrap prose">
     <nav class="nav" aria-label="Primary">
       <a class="brand" href="../">Plumbline</a>
       <a href="../log/">Log</a>
       <a href="../verify/">Verify</a>
       <a href="./" aria-current="page">Taxonomy</a>
       <a href="../server/">Servers</a>
+      <a href="../glossary/">Glossary</a>
     </nav>
     <h1>Severity taxonomy</h1>
-    <p class="muted">
-      Rendered from <a href="../docs/SPEC-TAXONOMY.md">SPEC-TAXONOMY.md</a>
-      (works with JavaScript disabled).
+    <p class="lead">
+      This page is the written rulebook for how Plumbline will classify a change
+      in tool metadata once findings are published. It is here so anyone can
+      read the rules without reading the Go code.
     </p>
-    <pre class="doc-pre"># Plumbline Severity Taxonomy
+    <p class="muted">
+      Full normative text from <a href="../docs/SPEC-TAXONOMY.md">SPEC-TAXONOMY.md</a>
+      (works with JavaScript disabled). Study findings that use these rules are
+      not shown on this site until the kill tests are evaluated.
+    </p>
+<pre class="doc-pre"># Plumbline Severity Taxonomy
 
 **Version:** `taxonomy-v1`  
 **Status:** Normative for `internal/classify`  
@@ -429,6 +436,7 @@ Additive phrase-list edits within v1 are allowed and MUST be called out in
 the commit message; fixture updates MUST accompany phrase additions that
 change classification results.
 </pre>
+
   </div>
   <script src="../js/base.js"></script>
   <script src="../js/ui.js"></script>

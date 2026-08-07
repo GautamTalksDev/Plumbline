@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <title>Servers — Plumbline</title>
+  <title>Servers: look up observation hashes</title>
   <link rel="stylesheet" href="../css/site.css">
 </head>
 <body>
@@ -14,20 +14,26 @@
     pre-registered kill tests are evaluated. See
     <a href="../docs/LIMITATIONS.md">docs/LIMITATIONS.md</a>.
   </div>
-  <div class="wrap">
+  <div class="wrap prose">
     <nav class="nav" aria-label="Primary">
       <a class="brand" href="../">Plumbline</a>
       <a href="../log/">Log</a>
       <a href="../verify/">Verify</a>
       <a href="../taxonomy/">Taxonomy</a>
       <a href="./" aria-current="page">Servers</a>
+      <a href="../glossary/">Glossary</a>
     </nav>
 
     <h1>Server observations</h1>
+    <p class="lead">
+      Enter a registry server id to see when Plumbline observed it and what
+      fingerprint it recorded. You get dates and hashes only, not the tool’s
+      written description, and not any severity or drift finding.
+    </p>
     <p>
-      Look up a registry server id. History shows date, canonical hash,
-      protocol version, and event type only — not tool descriptions, not
-      severity, not drift findings.
+      A canonical hash is a fingerprint of the tool metadata after
+      normalization. If that hash changes between weeks, the published claim
+      changed. This page will not tell you whether that change was harmful.
     </p>
 
     <div class="search-row" role="search">
