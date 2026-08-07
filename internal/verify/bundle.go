@@ -196,18 +196,23 @@ func VerifyBundle(ctx context.Context, opt BundleOptions) (Result, error) {
 		return fail("checkpoint.json root_hash: invalid hex")
 	}
 
-	indices, err := listInclusionIndices(ctx, client, base)
+	indices, skipReason, err := listInclusionIndices(ctx, client, base)
 	if err != nil {
 		return fail("inclusion proofs: " + err.Error())
 	}
 	res.InclusionProofs = len(indices)
 
-	if len(indices) == 0 {
-		// No proofs present — inclusion was not performed. Never report true.
+	if skipReason != "" || len(indices) == 0 {
+		// Inclusion was not performed. Never report true.
 		res.InclusionOK = false
 		res.InclusionSkipped = true
+		if skipReason == "" {
+			skipReason = "0 proofs found"
+		}
+		res.InclusionSkipReason = skipReason
 		res.CheckedEntries = 0
-		res.EntriesHashedOK = true // N/A for bundle path
+		res.EntriesHashedOK = false
+		res.EntriesHashedSkipped = true
 		res.OK = res.CheckpointOK && res.ConsistencyOK && len(res.Errors) == 0
 		return res, nil
 	}
@@ -217,6 +222,8 @@ func VerifyBundle(ctx context.Context, opt BundleOptions) (Result, error) {
 		// Proofs exist but none could be checked — FAIL.
 		res.InclusionOK = false
 		res.CheckedEntries = 0
+		res.EntriesHashedOK = false
+		res.EntriesHashedSkipped = true
 		return fail(fmt.Sprintf("inclusion: %d proofs present but 0 checked (max-entries=%d) — refusing false assurance", len(indices), maxEnt))
 	}
 
@@ -226,34 +233,55 @@ func VerifyBundle(ctx context.Context, opt BundleOptions) (Result, error) {
 		b, err := fetchBytes(ctx, client, base, name)
 		if err != nil {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: %v", idx, err))
 		}
 		var proof inclusionProofWire
 		if err := json.Unmarshal(b, &proof); err != nil {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: %v", idx, err))
 		}
 		if proof.Index != idx {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: file claims index %d", idx, proof.Index))
 		}
 		leaf, err := hex.DecodeString(proof.LeafHash)
 		if err != nil {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: bad leaf_hash", idx))
 		}
 		path, err := decodePath(proof.AuditPath)
 		if err != nil {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: %v", idx, err))
 		}
 		proofRoot, err := hex.DecodeString(proof.RootHash)
 		if err != nil {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: bad root_hash", idx))
 		}
 		if !bytesEq(proofRoot, signedRoot) {
 			res.InclusionOK = false
+			if res.CheckedEntries == 0 {
+				res.EntriesHashedSkipped = true
+			}
 			return fail(fmt.Sprintf("inclusion proof for idx %d: proof root != signed checkpoint root", idx))
 		}
 		treeSize := int(proof.TreeSize)
@@ -262,6 +290,9 @@ func VerifyBundle(ctx context.Context, opt BundleOptions) (Result, error) {
 		}
 		if !log.VerifyInclusion(int(proof.Index), treeSize, leaf, path, signedRoot) {
 			res.InclusionOK = false
+			// Leaf hash was evaluated via inclusion and failed.
+			res.EntriesHashedOK = false
+			res.EntriesHashedSkipped = false
 			return fail(fmt.Sprintf("inclusion proof failed for idx %d — tampering detected", idx))
 		}
 		res.CheckedEntries++
@@ -270,19 +301,23 @@ func VerifyBundle(ctx context.Context, opt BundleOptions) (Result, error) {
 	// Invariant: never report inclusion success with a zero checked count when proofs exist.
 	if res.InclusionOK && res.CheckedEntries == 0 {
 		res.InclusionOK = false
+		res.EntriesHashedSkipped = true
 		return fail(fmt.Sprintf("inclusion: internal error — %d proofs present but checked count is 0", len(indices)))
 	}
 
-	res.EntriesHashedOK = true // bundle path verifies published leaf hashes via inclusion proofs
+	// Bundle path: leaf hashes in the sampled proofs are bound to the signed
+	// root by VerifyInclusion. That is the evaluation — not a separate pass.
+	res.EntriesHashedOK = true
+	res.EntriesHashedSkipped = false
 	res.OK = res.CheckpointOK && res.ConsistencyOK && res.InclusionOK && len(res.Errors) == 0
 	return res, nil
 }
 
-// listInclusionIndices enumerates proofs/inclusion/*.json in the bundle.
-// Local paths use the directory listing. HTTP(S) bundles use
-// proofs/inclusion/index.json when present; otherwise indices 0..tree_size-1
-// from checkpoint.json (matching publish-bundle layout).
-func listInclusionIndices(ctx context.Context, client *http.Client, base string) ([]int64, error) {
+// listInclusionIndices enumerates which inclusion proofs the bundle contains.
+// Local paths use proofs/inclusion/ readdir. HTTP(S) requires
+// proofs/inclusion/index.json and never fabricates a 0..tree_size range.
+// skipReason is non-empty when inclusion should be reported as skipped.
+func listInclusionIndices(ctx context.Context, client *http.Client, base string) (indices []int64, skipReason string, err error) {
 	if strings.HasPrefix(base, "http://") || strings.HasPrefix(base, "https://") {
 		return listInclusionIndicesHTTP(ctx, client, base)
 	}
@@ -290,10 +325,21 @@ func listInclusionIndices(ctx context.Context, client *http.Client, base string)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, "0 proofs found", nil
 		}
-		return nil, err
+		return nil, "", err
 	}
+	out, err := indicesFromDirEntries(entries)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(out) == 0 {
+		return nil, "0 proofs found", nil
+	}
+	return out, "", nil
+}
+
+func indicesFromDirEntries(entries []os.DirEntry) ([]int64, error) {
 	var out []int64
 	for _, e := range entries {
 		if e.IsDir() {
@@ -317,45 +363,32 @@ func listInclusionIndices(ctx context.Context, client *http.Client, base string)
 	return out, nil
 }
 
-func listInclusionIndicesHTTP(ctx context.Context, client *http.Client, base string) ([]int64, error) {
-	if raw, err := fetchBytes(ctx, client, base, "proofs/inclusion/index.json"); err == nil {
-		var idxFile struct {
-			Indices []int64 `json:"indices"`
-			Count   int     `json:"count"`
-		}
-		if err := json.Unmarshal(raw, &idxFile); err != nil {
-			return nil, fmt.Errorf("proofs/inclusion/index.json: %w", err)
-		}
-		if len(idxFile.Indices) > 0 {
-			out := append([]int64(nil), idxFile.Indices...)
-			sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
-			return out, nil
-		}
-		if idxFile.Count > 0 {
-			out := make([]int64, idxFile.Count)
-			for i := range out {
-				out[i] = int64(i)
-			}
-			return out, nil
-		}
-	}
-	// Fallback: signed tree size from checkpoint.json.
-	raw, err := fetchBytes(ctx, client, base, "checkpoint.json")
+func listInclusionIndicesHTTP(ctx context.Context, client *http.Client, base string) ([]int64, string, error) {
+	raw, err := fetchBytes(ctx, client, base, "proofs/inclusion/index.json")
 	if err != nil {
-		return nil, nil
+		// Absent index: never invent 0..tree_size. Report skipped.
+		return nil, "no proof index", nil
 	}
-	var cp checkpointWire
-	if err := json.Unmarshal(raw, &cp); err != nil {
-		return nil, err
+	var idxFile struct {
+		Indices []int64 `json:"indices"`
+		Count   int     `json:"count"`
 	}
-	if cp.TreeSize <= 0 {
-		return nil, nil
+	if err := json.Unmarshal(raw, &idxFile); err != nil {
+		return nil, "", fmt.Errorf("proofs/inclusion/index.json: %w", err)
 	}
-	out := make([]int64, cp.TreeSize)
-	for i := range out {
-		out[i] = int64(i)
+	// Only the explicit indices list is authoritative. Never expand count into
+	// a fabricated contiguous range (proofs may be a sparse subset of the tree).
+	if len(idxFile.Indices) == 0 {
+		return nil, "0 proofs found", nil
 	}
-	return out, nil
+	out := append([]int64(nil), idxFile.Indices...)
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	if idxFile.Count > 0 && idxFile.Count != len(out) {
+		// Prefer indices; count is informational. Mismatch is not fatal but
+		// use the list length as InclusionProofs via caller.
+		_ = idxFile.Count
+	}
+	return out, "", nil
 }
 
 // sampleIndices returns a random subset of indices of size min(n, maxN).

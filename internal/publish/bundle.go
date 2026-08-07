@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -303,22 +304,45 @@ func Bundle(opt Options) error {
 			return err
 		}
 	}
-	// Index for HTTP bundles that cannot directory-list.
-	incIdx := make([]int64, 0, len(leaves)-int(from))
-	for i := int(from); i < len(leaves); i++ {
-		incIdx = append(incIdx, int64(i))
-	}
-	if from == 0 {
-		if err := writeJSON(filepath.Join(out, "proofs", "inclusion", "index.json"), map[string]any{
-			"count":   len(leaves),
-			"indices": incIdx,
-		}); err != nil {
-			return err
-		}
+	// Index must list every proof file that exists on disk (including those
+	// retained from a prior --since incremental publish). HTTP verify cannot
+	// readdir, so this file is authoritative for remote sampling.
+	if err := writeInclusionIndex(filepath.Join(out, "proofs", "inclusion")); err != nil {
+		return err
 	}
 
 	_ = latest
 	return nil
+}
+
+// writeInclusionIndex writes proofs/inclusion/index.json from the proof files
+// actually present (sorted indices + count).
+func writeInclusionIndex(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	var indices []int64
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if name == "index.json" || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		stem := strings.TrimSuffix(name, ".json")
+		idx, err := strconv.ParseInt(stem, 10, 64)
+		if err != nil || idx < 0 {
+			continue
+		}
+		indices = append(indices, idx)
+	}
+	sort.Slice(indices, func(i, j int) bool { return indices[i] < indices[j] })
+	return writeJSON(filepath.Join(dir, "index.json"), map[string]any{
+		"count":   len(indices),
+		"indices": indices,
+	})
 }
 
 func consistencyBetween(leaves [][]byte, oldSize, newSize int64) (ConsistencyProofJSON, error) {

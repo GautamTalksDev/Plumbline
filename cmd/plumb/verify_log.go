@@ -141,7 +141,7 @@ func writeVerifyHuman(w interface{ Write([]byte) (int, error) }, res verify.Resu
 	fmt.Fprintf(w, "checkpoint   %v\n", res.CheckpointOK)
 	fmt.Fprintf(w, "consistency  %v\n", res.ConsistencyOK)
 	fmt.Fprintf(w, "inclusion    %s\n", formatInclusionLine(res))
-	fmt.Fprintf(w, "leaf_hashes  %v\n", res.EntriesHashedOK)
+	fmt.Fprintf(w, "leaf_hashes  %s\n", formatLeafHashesLine(res))
 	if res.OK {
 		fmt.Fprintln(w, "result       OK — no tampering detected")
 	} else {
@@ -154,10 +154,21 @@ func writeVerifyHuman(w interface{ Write([]byte) (int, error) }, res verify.Resu
 
 func formatInclusionLine(res verify.Result) string {
 	if res.InclusionSkipped {
-		return "skipped (0 proofs found)"
+		reason := res.InclusionSkipReason
+		if reason == "" {
+			reason = "0 proofs found"
+		}
+		return fmt.Sprintf("skipped (%s)", reason)
 	}
 	if res.InclusionProofs > 0 {
 		return fmt.Sprintf("%v (%d of %d proofs checked)", res.InclusionOK, res.CheckedEntries, res.InclusionProofs)
 	}
 	return fmt.Sprintf("%v (%d entries checked)", res.InclusionOK, res.CheckedEntries)
+}
+
+func formatLeafHashesLine(res verify.Result) string {
+	if res.EntriesHashedSkipped {
+		return "skipped (not evaluated)"
+	}
+	return fmt.Sprintf("%v", res.EntriesHashedOK)
 }

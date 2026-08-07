@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -154,8 +156,125 @@ func TestVerifyBundleSkippedWhenNoProofs(t *testing.T) {
 	if !res.InclusionSkipped {
 		t.Fatal("expected InclusionSkipped")
 	}
+	if res.InclusionSkipReason != "0 proofs found" {
+		t.Fatalf("skip reason=%q", res.InclusionSkipReason)
+	}
+	if !res.EntriesHashedSkipped {
+		t.Fatal("leaf_hashes must be skipped when inclusion was not evaluated")
+	}
 	if res.CheckedEntries != 0 {
 		t.Fatalf("checked=%d", res.CheckedEntries)
+	}
+}
+
+func TestVerifyBundleHTTPRequiresIndexNeverFabricatesRange(t *testing.T) {
+	pub, out := seedBundle(t, 20)
+	incDir := filepath.Join(out, "proofs", "inclusion")
+	keep := map[string]bool{"5.json": true, "10.json": true, "15.json": true}
+	entries, err := os.ReadDir(incDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if e.Name() == "index.json" {
+			_ = os.Remove(filepath.Join(incDir, e.Name()))
+			continue
+		}
+		if !keep[e.Name()] {
+			_ = os.Remove(filepath.Join(incDir, e.Name()))
+		}
+	}
+	// Write authoritative sparse index (what publish-bundle now does via readdir).
+	idx := map[string]any{"count": 3, "indices": []int64{5, 10, 15}}
+	b, err := json.MarshalIndent(idx, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(incDir, "index.json"), append(b, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ts := httptest.NewServer(http.FileServer(http.Dir(out)))
+	defer ts.Close()
+
+	res, err := verify.VerifyBundle(context.Background(), verify.BundleOptions{
+		Bundle:     ts.URL,
+		PublicKey:  pub,
+		MaxEntries: 500,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.OK || !res.InclusionOK {
+		t.Fatalf("sparse HTTP verify failed: %+v", res)
+	}
+	if res.InclusionProofs != 3 || res.CheckedEntries != 3 {
+		t.Fatalf("proofs=%d checked=%d want 3/3", res.InclusionProofs, res.CheckedEntries)
+	}
+	if res.EntriesHashedSkipped || !res.EntriesHashedOK {
+		t.Fatalf("leaf_hashes should be evaluated OK, got skipped=%v ok=%v", res.EntriesHashedSkipped, res.EntriesHashedOK)
+	}
+}
+
+func TestVerifyBundleHTTPMissingIndexSkipped(t *testing.T) {
+	pub, out := seedBundle(t, 6)
+	_ = os.Remove(filepath.Join(out, "proofs", "inclusion", "index.json"))
+
+	ts := httptest.NewServer(http.FileServer(http.Dir(out)))
+	defer ts.Close()
+
+	res, err := verify.VerifyBundle(context.Background(), verify.BundleOptions{
+		Bundle:    ts.URL,
+		PublicKey: pub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.InclusionOK {
+		t.Fatal("must not claim inclusion without index")
+	}
+	if !res.InclusionSkipped || res.InclusionSkipReason != "no proof index" {
+		t.Fatalf("want skipped (no proof index), got %+v", res)
+	}
+	if !res.EntriesHashedSkipped {
+		t.Fatal("leaf_hashes must report skipped, not false-as-failure")
+	}
+}
+
+func TestVerifyBundleLocalAndHTTPAgreeOnCheckedCount(t *testing.T) {
+	pub, out := seedBundle(t, 14)
+	ts := httptest.NewServer(http.FileServer(http.Dir(out)))
+	defer ts.Close()
+
+	// MaxEntries >= proof count so both paths check every indexed proof
+	// (no random-sample divergence).
+	local, err := verify.VerifyBundle(context.Background(), verify.BundleOptions{
+		Bundle:     out,
+		PublicKey:  pub,
+		MaxEntries: 500,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote, err := verify.VerifyBundle(context.Background(), verify.BundleOptions{
+		Bundle:     ts.URL,
+		PublicKey:  pub,
+		MaxEntries: 500,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !local.OK || !remote.OK {
+		t.Fatalf("local=%+v remote=%+v", local, remote)
+	}
+	if local.CheckedEntries != remote.CheckedEntries {
+		t.Fatalf("checked count local=%d remote=%d", local.CheckedEntries, remote.CheckedEntries)
+	}
+	if local.InclusionProofs != remote.InclusionProofs {
+		t.Fatalf("proofs local=%d remote=%d", local.InclusionProofs, remote.InclusionProofs)
+	}
+	if local.CheckedEntries == 0 {
+		t.Fatal("expected non-zero checked count")
 	}
 }
 
