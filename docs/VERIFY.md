@@ -11,8 +11,8 @@ log endpoint. You do **not** need to trust the log operator.
 go install github.com/GautamTalksDev/Plumbline/cmd/plumb@latest
 
 # Verify a static publish-bundle (preferred for the public site)
-plumb verify-log --bundle https://example.com/log/ \
-  --pubkey-hex "$(curl -fsS https://example.com/log/pubkey.txt)"
+plumb verify-log --bundle https://plumbline.gautamkhosla.com/log \
+  --pubkey docs/log-public-key.ed25519
 
 # Or verify against any conforming live HTTP API
 plumb verify-log --url https://log.example.com \

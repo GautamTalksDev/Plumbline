@@ -74,6 +74,10 @@ plumb publish-bundle --log ~/.plumbline/crawl-log.sqlite \
   --out site/log --week N \
   --pubkey docs/log-public-key.ed25519
 plumb verify-log --bundle ./site/log --pubkey docs/log-public-key.ed25519
+
+# Against the public site (canonical host):
+plumb verify-log --bundle https://plumbline.gautamkhosla.com/log \
+  --pubkey docs/log-public-key.ed25519
 ```
 
 `--week` is the study week (1–6) shown in the site status banner via

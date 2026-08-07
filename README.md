@@ -27,6 +27,13 @@ see [RESULTS.md](RESULTS.md).
 - Log public key: [docs/log-public-key.ed25519](docs/log-public-key.ed25519)
 - Deferred ideas: [IDEAS.md](IDEAS.md) (do not build during Phase E)
 
+Public log (canonical):
+
+```bash
+plumb verify-log --bundle https://plumbline.gautamkhosla.com/log \
+  --pubkey docs/log-public-key.ed25519
+```
+
 ## Layout
 
 ```
