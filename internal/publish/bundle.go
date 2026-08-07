@@ -129,7 +129,7 @@ func Bundle(opt Options) error {
 	if err != nil {
 		return err
 	}
-	defer lg.Close()
+	defer func() { _ = lg.Close() }()
 
 	size, err := lg.Size()
 	if err != nil {
