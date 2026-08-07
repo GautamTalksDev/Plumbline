@@ -16,20 +16,23 @@ import (
 
 func newPublishBundleCmd(jsonOut *bool) *cobra.Command {
 	var (
-		logPath string
-		outDir  string
-		since   int64
-		week    int
-		pubPath string
-		pubHex  string
+		logPath   string
+		outDir    string
+		since     int64
+		week      int
+		maxProofs int
+		pubPath   string
+		pubHex    string
 	)
 	cmd := &cobra.Command{
 		Use:   "publish-bundle",
 		Short: "Write a static signed-log JSON bundle for the transparency site",
 		Long: `Export Merkle log checkpoints, per-server observation histories (hashes
-and metadata only), and inclusion/consistency proofs as static JSON under
---out (default site/log/). No server is required to serve the bundle.
+and metadata only), and a deterministic sample of inclusion proofs plus all
+consistency proofs as static JSON under --out (default site/log/).
 
+Inclusion proofs are sampled with plumbline-proofsample-v1 (see docs/VERIFY.md),
+not one-per-entry — so the bundle stays within static-hosting file caps.
 Does not change what is recorded or how it is classified.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, _ := os.UserHomeDir()
@@ -41,18 +44,20 @@ Does not change what is recorded or how it is classified.`,
 				return fmt.Errorf("publish-bundle: %w", err)
 			}
 			if err := publish.Bundle(publish.Options{
-				LogPath: logPath,
-				OutDir:  outDir,
-				Since:   since,
-				Week:    week,
-				PubKey:  pub,
+				LogPath:   logPath,
+				OutDir:    outDir,
+				Since:     since,
+				Week:      week,
+				PubKey:    pub,
+				MaxProofs: maxProofs,
 			}); err != nil {
 				return err
 			}
 			if *jsonOut {
 				_ = json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]any{
-					"out":  outDir,
-					"week": week,
+					"out":        outDir,
+					"week":       week,
+					"max_proofs": maxProofs,
 				})
 			} else {
 				fmt.Fprintf(cmd.OutOrStdout(), "published static bundle → %s (week %d)\n", outDir, week)
@@ -64,6 +69,7 @@ Does not change what is recorded or how it is classified.`,
 	cmd.Flags().StringVar(&outDir, "out", "site/log", "output directory")
 	cmd.Flags().Int64Var(&since, "since", 0, "optional index: only rewrite server/inclusion artifacts for idx >= since")
 	cmd.Flags().IntVar(&week, "week", 1, "study week N of 6 (written into meta.json)")
+	cmd.Flags().IntVar(&maxProofs, "max-proofs", publish.DefaultMaxProofs, "inclusion-proof sample budget (plumbline-proofsample-v1)")
 	cmd.Flags().StringVar(&pubPath, "pubkey", "", "path to Ed25519 public key (raw or hex)")
 	cmd.Flags().StringVar(&pubHex, "pubkey-hex", "", "Ed25519 public key as hex")
 	return cmd

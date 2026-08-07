@@ -1,0 +1,981 @@
+{
+  "servers": {
+    "ai.rocketsloth/rocketsloth": {
+      "observations": [
+        {
+          "idx": 3002,
+          "date": "2026-08-05",
+          "hash": "sha256:aeb53055773d77bd7053b2061ae06a39529221cc5642f17baa737d173a8bdaa6",
+          "protocol_version": "2024-11-05",
+          "event_type": "status"
+        },
+        {
+          "idx": 3003,
+          "date": "2026-08-05",
+          "hash": "sha256:370d577174028dd56646ca52e08256cd1de133a2bf348b3384be92546eeb9e9f",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3004,
+          "date": "2026-08-05",
+          "hash": "sha256:bff6c6de1eef8488fcbcca99ea9d561d317e2945c7405feb045b6c598b23d4ad",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3005,
+          "date": "2026-08-05",
+          "hash": "sha256:46204033235e6c2d4a5fc74e9ed5b10cbd9b728174f4a1047d60907593dd0329",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3006,
+          "date": "2026-08-05",
+          "hash": "sha256:11be21ffe6b71cee0571fa01c22ad9563d0d8633fc55ec6e5289458a0ca366bf",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3007,
+          "date": "2026-08-05",
+          "hash": "sha256:2cb9aa6165dfbdef2e3f0fb67e91c858e0c96faa473f07f161cabdaaa2e00894",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3008,
+          "date": "2026-08-05",
+          "hash": "sha256:d5a638246e2416f2fb4cb68ec5d4903191b6e2b113052284196e592229da93f0",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3009,
+          "date": "2026-08-05",
+          "hash": "sha256:d434f675c5828df3aabeb3a468de18040e4018f43ff6a7069baec5d04698c7ad",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3010,
+          "date": "2026-08-05",
+          "hash": "sha256:98262d70190c92876b056d4b9561b3877e1038028683b399c70c20b44e3f892a",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3011,
+          "date": "2026-08-05",
+          "hash": "sha256:0375117653d9f132e4fa279e686625ad1fc31bbaf722289858257eefc4d72caa",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3012,
+          "date": "2026-08-05",
+          "hash": "sha256:eb5ebda282fa32c5bd0b3601cc77ca236005753d35322378d0a38f60866e58d4",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3013,
+          "date": "2026-08-05",
+          "hash": "sha256:8f99f4e4f61b1718856d7c02a1be1bfd2d04fe9a7414001466bea6159e53cc69",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3014,
+          "date": "2026-08-05",
+          "hash": "sha256:233ce72a687ca1448e823717f4bb1f014e5f61493d6d2d42a9097ffe3b6a1803",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3015,
+          "date": "2026-08-05",
+          "hash": "sha256:ef5d68e3b5a88fb41633987e9aeb292e8747b06e87ed86b7e53ce35e9da64cdd",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3016,
+          "date": "2026-08-05",
+          "hash": "sha256:e15c73008eb2e0b1ca4cd72773fc9a306a6627e4d69bb199cdf47ffdbbf0c2a2",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 3017,
+          "date": "2026-08-05",
+          "hash": "sha256:0575d2e7d7d4d2115bdf5230890bc8c755d08f5417cc478f401686dae729e221",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        }
+      ]
+    },
+    "ai.smithery/keithah-tessie-mcp": {
+      "observations": [
+        {
+          "idx": 3481,
+          "date": "2026-08-05",
+          "hash": "sha256:d685a950c81603bcd550c581caef5b2a3a1241d987db2390887fa79fc940d82b",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    },
+    "ai.upgradeagent/upgrade-agent": {
+      "observations": [
+        {
+          "idx": 4160,
+          "date": "2026-08-05",
+          "hash": "sha256:fbcff1b18a90ef5aff3cb6d8dc55564e7755fd0833473eafb4bda110714e6813",
+          "protocol_version": "2024-11-05",
+          "event_type": "status"
+        },
+        {
+          "idx": 4161,
+          "date": "2026-08-05",
+          "hash": "sha256:9c2954f27dc6d4463f0c4d3d27abf32c2905468eb7aa13cb3d4f6b8ca81b48c7",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4162,
+          "date": "2026-08-05",
+          "hash": "sha256:2534b04bb54eeafbc4d973bea71f47ae08a9c04e5fc8f270b51ee03e398b13a5",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4163,
+          "date": "2026-08-05",
+          "hash": "sha256:3b3e0196fd200cb809589d420dd3b916b262ae9dbd82d505da7da1c610c169b0",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4164,
+          "date": "2026-08-05",
+          "hash": "sha256:1649a5b7b9f1679489c997a20dac5ab07724e04a3d0972d254515c34f7a2b009",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4165,
+          "date": "2026-08-05",
+          "hash": "sha256:6db273d72a6d829574ae85d8b657732b132a7f9c5377a8150ccc9d89d382dc81",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4166,
+          "date": "2026-08-05",
+          "hash": "sha256:755f2ed64d64cae0608c1d5f4b44f3840380c7cfffab6f3aa2dd197d69547950",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4167,
+          "date": "2026-08-05",
+          "hash": "sha256:1198700a55f422fdac8141e350c5b23395f3834199d71d7cbcdf8a9dc0ecacf5",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4168,
+          "date": "2026-08-05",
+          "hash": "sha256:06ccf4c359864ec5f06a7f9350158d798442f0b2c88fd7d050086775309a12b0",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4169,
+          "date": "2026-08-05",
+          "hash": "sha256:e23243f0457c3713273e0402b8f633c395ca7ad34b2d88aa4da4cc36bd2a3833",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4170,
+          "date": "2026-08-05",
+          "hash": "sha256:49f0fada0f4f9c2cb372ea2847388ed216d9640f6cde07d173b4564879cbc7b0",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4171,
+          "date": "2026-08-05",
+          "hash": "sha256:889133e64124dfd8889ba7625f4a49411c06b164ec93bf1fd39fe9d00233357b",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4172,
+          "date": "2026-08-05",
+          "hash": "sha256:fc73cca3b00efab95e77a9809e6e36815dd5507c998fc69c4a5543b36a57d315",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4173,
+          "date": "2026-08-05",
+          "hash": "sha256:8b7d23d7789e0e592745eb041ab7a00bc0010ac6f6ecbb9ff2844f5a60935751",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4174,
+          "date": "2026-08-05",
+          "hash": "sha256:ae16894f070af5076025370e66ba460cd95c172d0f50d1e7831a4d0e00e9dba8",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4175,
+          "date": "2026-08-05",
+          "hash": "sha256:044ce430653b3f0076f9a9949e3ffd18f6b4dbd865799ce5ae088b2d079433a4",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4176,
+          "date": "2026-08-05",
+          "hash": "sha256:dd25ed8513080237f414b62660bfb4f25b5f4fb7bbb3f1801788c448d030304e",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        },
+        {
+          "idx": 4177,
+          "date": "2026-08-05",
+          "hash": "sha256:8cccc937de69c0d404962dd4b52b95845f0c36d32d666e24b11e4c4218a64a2a",
+          "protocol_version": "2024-11-05",
+          "event_type": "tool"
+        }
+      ]
+    },
+    "app.sallim/contract-compass": {
+      "observations": [
+        {
+          "idx": 5412,
+          "date": "2026-08-05",
+          "hash": "sha256:e511609067902eb918f97a78fe9f3aa80d255bce0b8ffd9b31c04e89991e0021",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    },
+    "app.somvia/health": {
+      "observations": [
+        {
+          "idx": 5428,
+          "date": "2026-08-05",
+          "hash": "sha256:1cec85a8366a52e15f8d0f231a9b85ee5cd97d98cea9329b7fcd173897f6f6f0",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    },
+    "com.avalara/cross-border": {
+      "observations": [
+        {
+          "idx": 10238,
+          "date": "2026-08-05",
+          "hash": "sha256:d85a6406b78b72f442e05614233c888afe9d9f5f0053c7862700a4324ef3af49",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    },
+    "com.bouncewatch/signals": {
+      "observations": [
+        {
+          "idx": 10932,
+          "date": "2026-08-05",
+          "hash": "sha256:549c01cd25d4efdc11065528c2425a19d7aa776fd0ae8768ae9c51373caf3faa",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    },
+    "com.deepmapai/geophysical-intelligence": {
+      "observations": [
+        {
+          "idx": 11726,
+          "date": "2026-08-05",
+          "hash": "sha256:df1c7ac579284a146321778d7e90eef0a6f13b224e4149296862fbff0e38d20b",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23004,
+          "date": "2026-08-06",
+          "hash": "sha256:1bbfb30c07eb012685f20cbadaa1aacd402555b2e3b6acd995ec28ff9f31b479",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "com.mcparmory/klaviyo": {
+      "observations": [
+        {
+          "idx": 11890,
+          "date": "2026-08-05",
+          "hash": "sha256:f7794084d43708ffb1060d7e87201e799409f58c620b92ce9a77c0a09b1cbdde",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23171,
+          "date": "2026-08-06",
+          "hash": "sha256:506a9058c930a3ad886c3be3f044fc52e3ed97028c68fe53fa3927a45ac41197",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "com.mcparmory/notion": {
+      "observations": [
+        {
+          "idx": 11898,
+          "date": "2026-08-05",
+          "hash": "sha256:3c56646e0ad4db49ef34a02cacc6d450a33fec26a7002b8f7cd4dd34d377d88c",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23180,
+          "date": "2026-08-06",
+          "hash": "sha256:caabb41be7067ad10d3fba5e82ba4651510e640bcd7b42ee79a5a177447c3d33",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "com.overlayqa/mcp": {
+      "observations": [
+        {
+          "idx": 11990,
+          "date": "2026-08-05",
+          "hash": "sha256:a6982d01dbc6b95409aeba7701c6b9956e57481c12d82f759d7f0546b46de86e",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23273,
+          "date": "2026-08-06",
+          "hash": "sha256:86f220bf6ee61f8b9674346f70a6d8206ce69424fb01c8f84f9075f1cef9e2ab",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "com.sema-lang/sema": {
+      "observations": [
+        {
+          "idx": 12061,
+          "date": "2026-08-05",
+          "hash": "sha256:795213d50e91f0d1adff71b4b469db7f234961b6631007fed20ff6b535509557",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23346,
+          "date": "2026-08-06",
+          "hash": "sha256:57b8f513ce87c9a863ff6af59fc81a8bfd8f43caedc0eb2afa268615c55636cd",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.AddyCuber/ybe-check": {
+      "observations": [
+        {
+          "idx": 12576,
+          "date": "2026-08-05",
+          "hash": "sha256:c9ae61b6eeb6f8113cb102e95a58372989371039abea21b08f6ec09baabe969d",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23859,
+          "date": "2026-08-06",
+          "hash": "sha256:12a6009bcc0456345db0bf557108c56ab48fa495f0c23b530068ce3ab4a957e6",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.ArturSkowronski/minipainter": {
+      "observations": [
+        {
+          "idx": 12710,
+          "date": "2026-08-05",
+          "hash": "sha256:f46fab44d87b15661cb14daf7ed60811b9ce9b984bfb3af38e351620612aff6b",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 23995,
+          "date": "2026-08-06",
+          "hash": "sha256:c20c719024f3e664b58c3d2488cca3c32942e69c97c66b8477ab52261ded0e15",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.CSOAI-ORG/robotics-control-mcp": {
+      "observations": [
+        {
+          "idx": 13119,
+          "date": "2026-08-05",
+          "hash": "sha256:33e51fcc47c4988364c95032a0ef0e8dd0859905d76b3273dcace249d149a3a2",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 24404,
+          "date": "2026-08-06",
+          "hash": "sha256:071ceab526c42e0fc9367a27291c027d911ea6d076541b5275f46278ee67eed3",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.Dave-London/pare-lint": {
+      "observations": [
+        {
+          "idx": 13337,
+          "date": "2026-08-05",
+          "hash": "sha256:f6b20313858d2892c2029d37c3434a3c76da06322e088bd373ae12538b98934b",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 24624,
+          "date": "2026-08-06",
+          "hash": "sha256:a7bc77f16834730f1a72b9d51e56c5a31e032297ed2558d321d17f87ad639302",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.EmiyaKatuz/crispasr-agent-transcriber": {
+      "observations": [
+        {
+          "idx": 13439,
+          "date": "2026-08-05",
+          "hash": "sha256:ccf6c50b87c51bdefdb91263352137223c59734c04bcd04871529e0bfb90ff9d",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 24725,
+          "date": "2026-08-06",
+          "hash": "sha256:2284148805497d2ae38158669699ff8326e4aef93fc83f3a571a6d0b9e7560a1",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.Hasilt/images-mcp": {
+      "observations": [
+        {
+          "idx": 13629,
+          "date": "2026-08-05",
+          "hash": "sha256:8bd4ba72f6c6bacc56517f81cc21a33aa572e8e8925354a645d3ae5d8cd463d4",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 24921,
+          "date": "2026-08-06",
+          "hash": "sha256:4323fa179697530e29d5e94b7d4577414a0c83ff1193ecbef25193452c5299e8",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.LeonTing1010/tap": {
+      "observations": [
+        {
+          "idx": 13939,
+          "date": "2026-08-05",
+          "hash": "sha256:f831a4173a94fa27693d4661c3850634ae1d105cd9c52584c3a0a9a62270d782",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 25225,
+          "date": "2026-08-06",
+          "hash": "sha256:a3d022ac647b7fc0a7002b31a06ff153c66be794ca52333e2faf413d40adab37",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.Shrike-Security/shrike-mcp": {
+      "observations": [
+        {
+          "idx": 14670,
+          "date": "2026-08-05",
+          "hash": "sha256:9cf76a2f924985587b58706ff1b9ad832a27312a1d1e587e29cd4726e72091d5",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 25962,
+          "date": "2026-08-06",
+          "hash": "sha256:40a0c4411887709dbacbc6247e0e8bbc7514aaf905bf342c9c072db940f94e38",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.YashviGupta15/npm-advisor-mcp": {
+      "observations": [
+        {
+          "idx": 15021,
+          "date": "2026-08-05",
+          "hash": "sha256:fc4c8c697c5e19f480ccacddf64858dc10d528b64dac576848235169af869782",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 26314,
+          "date": "2026-08-06",
+          "hash": "sha256:c38e8da36b8713256bd38333d7661ab3c223e531cd42ed2a534fde90fde2faa0",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.Yercko/devilge": {
+      "observations": [
+        {
+          "idx": 15036,
+          "date": "2026-08-05",
+          "hash": "sha256:376bc2de53c7383d7992dce1b49d0b7d4aaf342a974648251827b3ea4eb0cceb",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 26332,
+          "date": "2026-08-06",
+          "hash": "sha256:88ed29c41869ae5af892713af3a7db449591b337c279d3a8f5e3e2c75e28c656",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.ZahiriNatZuke/whisper-transcribe-mcp": {
+      "observations": [
+        {
+          "idx": 15068,
+          "date": "2026-08-05",
+          "hash": "sha256:c631cddc4e1de2651e4f07c7c3fdffba9597dfb405675d6a2905d46e11876ec6",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 26361,
+          "date": "2026-08-06",
+          "hash": "sha256:4461ab7fd7c5e4f6c93f0d8793b79dc015ddefadb321b2fdb16465f8d85157b9",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.cameronrye/activitypub-mcp": {
+      "observations": [
+        {
+          "idx": 15928,
+          "date": "2026-08-05",
+          "hash": "sha256:c39d18234b77ffaa1c9d58126edbadf3c25e5169f094ed52a725f068f94670ba",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 27228,
+          "date": "2026-08-06",
+          "hash": "sha256:72645d33a7ab679e93086027af0b594103ed81207dd8b7e88db80b1a75749f10",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.codespar/mcp-andreani": {
+      "observations": [
+        {
+          "idx": 16175,
+          "date": "2026-08-05",
+          "hash": "sha256:051b0ff4d6f9f285c3c5e1a82e1251452aab1a25a4055abcfd8291e140fc9671",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 27476,
+          "date": "2026-08-06",
+          "hash": "sha256:ae8725a3dba37c8400da31e09860eeb7bbb8defba70ff1e207a6a43e1095fe21",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.codespar/mcp-colppy": {
+      "observations": [
+        {
+          "idx": 16203,
+          "date": "2026-08-05",
+          "hash": "sha256:ede6ebd6acd3ec69f6ad9be5cfedd4b4d5cabfa4b21be766127e0f9b4067dd3a",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 27505,
+          "date": "2026-08-06",
+          "hash": "sha256:973970f27b9e4b8ee27e2508b576275b72d272f6ca608fe013328772d6ef23d7",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.commandoperator/cmdop-care": {
+      "observations": [
+        {
+          "idx": 16306,
+          "date": "2026-08-05",
+          "hash": "sha256:d94409b15e6a759341fe8a0ff45b95a7da9b13741bc6ef9b39ccd51f5b27f375",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 27611,
+          "date": "2026-08-06",
+          "hash": "sha256:f4a167488d3782e58747632d5d7b35b92bb0a33179c892e0d2011f576c136159",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.cyanheads/astronomy-mcp-server": {
+      "observations": [
+        {
+          "idx": 16418,
+          "date": "2026-08-05",
+          "hash": "sha256:eac07aead2f17499cb8442f10031c939497033280ed1b120117f56dbbf52f9c5",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 27720,
+          "date": "2026-08-06",
+          "hash": "sha256:97088e667438417eef587e8c558044f3b9975adb14af0ab70ca1fa710106ed19",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.cyanheads/eia-energy-mcp-server": {
+      "observations": [
+        {
+          "idx": 16443,
+          "date": "2026-08-05",
+          "hash": "sha256:52856de0b0b27b58e5a4e97c644aa94ab6c2cdc2e49a3c8fdde48c3f63ba5d94",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 27744,
+          "date": "2026-08-06",
+          "hash": "sha256:78e4c21acb08734e3c8092fbc64305571774b4a303862053f085165f6ff25448",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 33652,
+          "date": "2026-08-06",
+          "hash": "sha256:89395e8ced1d7b5315e1a3e5557c52f2a339b8a5b7c4532c64a8295beeafe8e9",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    },
+    "io.github.enuno/unifi-mcp-server": {
+      "observations": [
+        {
+          "idx": 17100,
+          "date": "2026-08-05",
+          "hash": "sha256:f84055aa6efc7116888ce146632dd58738cec2bd9de047b50ba5ee3bfebb51fe",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 28403,
+          "date": "2026-08-06",
+          "hash": "sha256:558580ef165418ee11485f24a89784a988d148f976406a63f3a2251f72f28f74",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.farestrabs/agentnet": {
+      "observations": [
+        {
+          "idx": 17178,
+          "date": "2026-08-05",
+          "hash": "sha256:40f10b15c0e4af19cc7165c7b420125eb46e2843809811f4e92e47dc275477c3",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 28481,
+          "date": "2026-08-06",
+          "hash": "sha256:c306036d5862af4d6eb3b61b8b877b9c22a8860adc260004cd173a6b6e5472f5",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.fyllepo/qubic-mcp": {
+      "observations": [
+        {
+          "idx": 17322,
+          "date": "2026-08-05",
+          "hash": "sha256:dc95e3f177d565b5214cba90926e5752307175dc0fd6380ac18c69023280cc0a",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 28624,
+          "date": "2026-08-06",
+          "hash": "sha256:6f431abce397fa1ab9bd12f53e0b363aa0bfca6957fe1f2926a1496690c9f3fb",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.imVSmirnov/gdd": {
+      "observations": [
+        {
+          "idx": 17792,
+          "date": "2026-08-05",
+          "hash": "sha256:fd1fe1a28e69afc8ad78114095963f0d8b586f61098e719ac842d03c5bac6f58",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 22363,
+          "date": "2026-08-05",
+          "hash": "sha256:87048d0125dc8e903b1eb638c1c8d9c25c72da9f8ea3fbacd770a754068f3e53",
+          "protocol_version": "",
+          "event_type": "status"
+        },
+        {
+          "idx": 29100,
+          "date": "2026-08-06",
+          "hash": "sha256:0f3cab0270c320b2bbbe7f0475db329fe807876eff1b59a033156b41af1a0296",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.malamutemayhem/chessdotcom": {
+      "observations": [
+        {
+          "idx": 18628,
+          "date": "2026-08-05",
+          "hash": "sha256:a192db5f58563cd7ae6d1f5b70c8ffaaaf251676c736a4015b17f427b906acca",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 29934,
+          "date": "2026-08-06",
+          "hash": "sha256:54d7f02ad3c630bcc44e037c09efdff4e1bc853d99603da0c932f37bc2e4a5c3",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.nirholas/keystore-mcp-server": {
+      "observations": [
+        {
+          "idx": 19403,
+          "date": "2026-08-05",
+          "hash": "sha256:165750e16bb2340c45463a480edb04fd5d27835b4778942d61b40f5747a6c794",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 30714,
+          "date": "2026-08-06",
+          "hash": "sha256:05ef4aed65d53303c1a6c39ce65da3db697a7517630a3def97e24bc3f03784e1",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.raccioly/docguard": {
+      "observations": [
+        {
+          "idx": 20011,
+          "date": "2026-08-05",
+          "hash": "sha256:40e3114d38883bd69a617ef3d9a7328156b28a7cebccb9c93860e2d35ab71816",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 31322,
+          "date": "2026-08-06",
+          "hash": "sha256:24d3b670fefe8ab56b46fce83c76aee19063583c57daa8fc62c66e6c36213b05",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.rhishi99/agy-headless-bridge": {
+      "observations": [
+        {
+          "idx": 20129,
+          "date": "2026-08-05",
+          "hash": "sha256:8258d01b170ab0ac2624c8bd20eb2064edcf8428d312fce70e5a0298c0bd29e0",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 31441,
+          "date": "2026-08-06",
+          "hash": "sha256:a1e953e9107421cf60d71716d946f57bcbd9d9aa701f3f625838bc3211a0926d",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.ryudi84/timestamp": {
+      "observations": [
+        {
+          "idx": 20379,
+          "date": "2026-08-05",
+          "hash": "sha256:8727679a3a5875419c5786170041ff12e463c9b3afe0cb43f8e6a741f5b84f6d",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 31691,
+          "date": "2026-08-06",
+          "hash": "sha256:fec3f273a00f3f9a321a01d56bf415e1bef235561b24805ca6c04536dad82692",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.sbroenne/mcp-server-excel": {
+      "observations": [
+        {
+          "idx": 20481,
+          "date": "2026-08-05",
+          "hash": "sha256:447617c22dced92cd6db548f8f7a460f62fe1c53df311640f9e813036b55d1de",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 31793,
+          "date": "2026-08-06",
+          "hash": "sha256:cf0a3835fb38dad55d6e00a2b7f29474e7ef3097010e24abd87d493b386c5609",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.search-atlas-group/searchatlas": {
+      "observations": [
+        {
+          "idx": 20520,
+          "date": "2026-08-05",
+          "hash": "sha256:1576af35b3592ba5606e308eaeb08ea55a21cc95cc781ed0594031c656daaab6",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 31832,
+          "date": "2026-08-06",
+          "hash": "sha256:b2a7f706aa085f30c7a67704778bd31be5cf440e225daa2b54a28c6598e80f48",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.sebastienrousseau/bankstatementparser-mcp": {
+      "observations": [
+        {
+          "idx": 20528,
+          "date": "2026-08-05",
+          "hash": "sha256:61373fd50be6ac18172edd9ad8982765ccce7c8435ace99967faa56889cdebde",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 31840,
+          "date": "2026-08-06",
+          "hash": "sha256:75a5429f5b4f6fc0bd6d6b9fd3080b5b06b5b068df0a2b462f42f52c84295d1e",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.superagents-lab/search1api": {
+      "observations": [
+        {
+          "idx": 20932,
+          "date": "2026-08-05",
+          "hash": "sha256:f12eac4507dedf4c7cc8b2e69f98821206f26d36570cefccb9a16facab6c6f20",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 32249,
+          "date": "2026-08-06",
+          "hash": "sha256:3192ae9c8eefb523b91f2505cb98ab69e8831ee103e11c1ba27df9d5d580d0dc",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        }
+      ]
+    },
+    "io.github.zw008/vmware-nsx": {
+      "observations": [
+        {
+          "idx": 21965,
+          "date": "2026-08-05",
+          "hash": "sha256:32a965cfa77b00487c1285f55a26e86e41a8eeb72a4a4642286afff825d11b53",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 22196,
+          "date": "2026-08-05",
+          "hash": "sha256:191561cf386d6289a9e1fb364bff4718b335f61e77a684f5f6caa0222d2cec13",
+          "protocol_version": "",
+          "event_type": "status"
+        },
+        {
+          "idx": 33283,
+          "date": "2026-08-06",
+          "hash": "sha256:f07dcc6751f3cb6f9bbde7d9ad405ea3c90ef87697879fc0b0b895e81a0f85c3",
+          "protocol_version": "",
+          "event_type": "version_poll"
+        },
+        {
+          "idx": 34181,
+          "date": "2026-08-06",
+          "hash": "sha256:723dcc26eff92e10f2d3e955923120028714ca78524f5a332e4878fb0ef1d152",
+          "protocol_version": "",
+          "event_type": "status"
+        }
+      ]
+    }
+  }
+}

@@ -27,16 +27,22 @@
           UI.text(status, "No observations for that server id.");
           return null;
         }
-        // Filename is sha256 hex — never interpolate the raw id into a path.
+        // Shard filename is two hex digits — never interpolate the raw id.
         var file = entry.file;
-        if (!/^[0-9a-f]{64}\.json$/i.test(file)) {
-          throw new Error("invalid server filename in index");
+        if (!/^[0-9a-f]{2}\.json$/i.test(file)) {
+          throw new Error("invalid server shard filename in index");
         }
-        return UI.getJSON("log/servers/" + file).then(function (hist) {
+        return UI.getJSON("log/servers/" + file).then(function (shard) {
+          var serversMap = shard.servers || {};
+          var hist = serversMap[id];
+          if (!hist) {
+            UI.text(status, "Server id listed in index but missing from shard.");
+            return;
+          }
           var obs = hist.observations || [];
           UI.text(status, obs.length + " observation(s)");
           var title = document.getElementById("server-id");
-          if (title) UI.text(title, hist.id || id);
+          if (title) UI.text(title, id);
 
           obs.forEach(function (o) {
             var tr = UI.el("tr", {});

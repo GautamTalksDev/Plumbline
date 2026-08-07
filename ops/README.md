@@ -78,7 +78,9 @@ plumb verify-log --bundle ./site/log --pubkey docs/log-public-key.ed25519
 
 `--week` is the study week (1–6) shown in the site status banner via
 `meta.json`. Observation files contain hashes and metadata only — never
-tool descriptions or drift findings.
+tool descriptions or drift findings. Inclusion proofs are a deterministic
+sample (`--max-proofs`, default 2000; see `docs/VERIFY.md`); servers are
+sharded into ≤256 files under `servers/<hh>.json`.
 
 ### Crawl host only (no GitHub Actions crawl)
 

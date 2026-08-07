@@ -10,7 +10,11 @@ log endpoint. You do **not** need to trust the log operator.
 # Build the CLI
 go install github.com/GautamTalksDev/Plumbline/cmd/plumb@latest
 
-# Verify against any conforming endpoint
+# Verify a static publish-bundle (preferred for the public site)
+plumb verify-log --bundle https://example.com/log/ \
+  --pubkey-hex "$(curl -fsS https://example.com/log/pubkey.txt)"
+
+# Or verify against any conforming live HTTP API
 plumb verify-log --url https://log.example.com \
   --pubkey-hex "$(curl -fsS https://log.example.com/pubkey | jq -r .public_key)"
 ```
@@ -39,6 +43,31 @@ File copy in-repo: [`docs/log-public-key.ed25519`](log-public-key.ed25519).
 If an operator rewrites history, alters a leaf, or serves a forged checkpoint,
 verification fails.
 
+## Static bundle inclusion-proof sampling (`plumbline-proofsample-v1`)
+
+The public site ships a **static** bundle under `/log/`. Publishing one
+inclusion proof per log entry exceeds static-hosting file caps, so
+`plumb publish-bundle` emits a deterministic sample instead. Trust still
+comes from the signed tree head and consistency proofs between
+checkpoints; inclusion proofs are spot-checks (as in Certificate
+Transparency).
+
+With `--max-proofs N` (default **2000**), index `i` (`0 ≤ i < tree_size`)
+is included in `proofs/inclusion/` iff any of:
+
+1. `i < N`, or
+2. `i` is among the last `min(500, tree_size)` indices, or
+3. `uint64(SHA-256("plumbline-proofsample-v1|" + decimal(i))[0:8]) % tree_size < N`
+   (first 8 bytes interpreted big-endian)
+
+When `tree_size ≤ N`, every index is published. The published file
+`proofs/inclusion/index.json` lists the sampled `indices`, their `count`,
+`total_entries` (the full tree size), and `max_proofs`, so anyone can
+recompute the set and confirm it was not hand-picked.
+
+`plumb verify-log --bundle` samples only from that index (HTTP) or from
+the proof files present (local). It never invents `0..tree_size`.
+
 ## HTTP API (any conforming endpoint)
 
 | Method | Path | Purpose |
@@ -64,9 +93,9 @@ After the first successful deploy the public site is at:
 
 `https://gautamtalksdev.github.io/Plumbline/`
 
-Set repository variable `PLUMBLINE_API_ORIGIN` to your `plumbd` origin so the
-Pages site can call the live API. The Ed25519 public key is always published at
-`/pubkey.txt` on the static site and `GET /pubkey` on the API.
+Set repository variable `PLUMBLINE_API_ORIGIN` only if you still expose a
+live `plumbd` API; the Pages site serves the static `/log/` bundle by
+default and needs no origin override for verification.
 
 ```bash
 # After a crawl (or test log) exists:

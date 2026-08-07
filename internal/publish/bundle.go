@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -26,15 +27,27 @@ const (
 	taxonomyVersion = "taxonomy-v1"
 	eventsVersion   = "events-v2"
 	cohortVersion   = "plumbline-cohort-v1"
+
+	// DefaultMaxProofs is the default inclusion-proof sample budget and the
+	// threshold used by the plumbline-proofsample-v1 selection rule.
+	DefaultMaxProofs = 2000
+
+	// TailProofs is how many of the newest leaf indices are always included
+	// in the published inclusion-proof sample.
+	TailProofs = 500
+
+	// ProofSampleV1 is the domain-separation prefix for deterministic sampling.
+	ProofSampleV1 = "plumbline-proofsample-v1|"
 )
 
 // Options controls Bundle.
 type Options struct {
-	LogPath string
-	OutDir  string // default site/log/
-	Since   int64  // optional: only (re)write per-server / inclusion artifacts for idx >= Since
-	Week    int    // study week N of 6; written into meta.json
-	PubKey  ed25519.PublicKey
+	LogPath   string
+	OutDir    string // default site/log/
+	Since     int64  // optional: only (re)write artifacts for idx >= Since (best-effort)
+	Week      int    // study week N of 6; written into meta.json
+	PubKey    ed25519.PublicKey
+	MaxProofs int // inclusion proof sample budget (default DefaultMaxProofs)
 }
 
 // Meta is site/log/meta.json.
@@ -74,7 +87,7 @@ type CheckpointsFile struct {
 	ConsistencyProofs []ConsistencyProofJSON `json:"consistency_proofs"`
 }
 
-// ServerIndex maps server id → filename (sha256 hex of id) + observation count.
+// ServerIndex maps server id → shard filename + observation count.
 type ServerIndex struct {
 	Servers []ServerIndexEntry `json:"servers"`
 }
@@ -82,7 +95,7 @@ type ServerIndex struct {
 // ServerIndexEntry is one row in servers/index.json.
 type ServerIndexEntry struct {
 	ID    string `json:"id"`
-	File  string `json:"file"`
+	File  string `json:"file"` // "ab.json" — first two hex digits of SHA-256(id)
 	Count int    `json:"observation_count"`
 }
 
@@ -95,9 +108,13 @@ type ServerObservation struct {
 	EventType       string `json:"event_type"`
 }
 
-// ServerHistory is site/log/servers/<sha256>.json.
-type ServerHistory struct {
-	ID           string              `json:"id"`
+// ServerShard is servers/<hh>.json — all servers whose id-hash starts with hh.
+type ServerShard struct {
+	Servers map[string]ServerShardEntry `json:"servers"`
+}
+
+// ServerShardEntry is one server inside a shard file.
+type ServerShardEntry struct {
 	Observations []ServerObservation `json:"observations"`
 }
 
@@ -108,6 +125,15 @@ type InclusionProofJSON struct {
 	LeafHash  string   `json:"leaf_hash"`
 	AuditPath []string `json:"audit_path"`
 	RootHash  string   `json:"root_hash"`
+}
+
+// InclusionIndex is proofs/inclusion/index.json.
+type InclusionIndex struct {
+	Count        int     `json:"count"`
+	TotalEntries int64   `json:"total_entries"`
+	MaxProofs    int     `json:"max_proofs"`
+	Rule         string  `json:"rule"`
+	Indices      []int64 `json:"indices"`
 }
 
 // Bundle writes a static log bundle under opt.OutDir.
@@ -124,6 +150,10 @@ func Bundle(opt Options) error {
 	}
 	if opt.Week < 0 || opt.Week > 6 {
 		return fmt.Errorf("publish: --week must be 0–6 (0 = pre-study / unknown)")
+	}
+	maxProofs := opt.MaxProofs
+	if maxProofs <= 0 {
+		maxProofs = DefaultMaxProofs
 	}
 
 	lg, err := log.Open(opt.LogPath)
@@ -160,14 +190,26 @@ func Bundle(opt Options) error {
 	root := log.MerkleRoot(leaves)
 	rootHex := hex.EncodeToString(root)
 
-	if err := os.MkdirAll(filepath.Join(out, "servers"), 0o755); err != nil { //nolint:gosec // G301 -- public static site tree
+	serversDir := filepath.Join(out, "servers")
+	incDir := filepath.Join(out, "proofs", "inclusion")
+	consDir := filepath.Join(out, "proofs", "consistency")
+	if err := os.MkdirAll(serversDir, 0o755); err != nil { //nolint:gosec // G301 -- public static site tree
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(out, "proofs", "inclusion"), 0o755); err != nil { //nolint:gosec // G301
+	if err := os.MkdirAll(incDir, 0o755); err != nil { //nolint:gosec // G301
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(out, "proofs", "consistency"), 0o755); err != nil { //nolint:gosec // G301
+	if err := os.MkdirAll(consDir, 0o755); err != nil { //nolint:gosec // G301
 		return err
+	}
+
+	fullPublish := opt.Since <= 0
+	if fullPublish {
+		// Wipe prior layout so a republish cannot leave orphaned proof/server
+		// files from an older scheme (e.g. one-proof-per-entry).
+		if err := resetLayoutDirs(out); err != nil {
+			return err
+		}
 	}
 
 	// pubkey.txt — hex, one line
@@ -201,13 +243,12 @@ func Bundle(opt Options) error {
 		if err != nil {
 			return err
 		}
-		// Bind proof roots to the signed checkpoint hashes.
 		if proof.OldRoot != old.RootHash || proof.NewRoot != newC.RootHash {
 			return fmt.Errorf("publish: consistency roots mismatch checkpoints %d→%d", old.TreeSize, newC.TreeSize)
 		}
 		cons = append(cons, proof)
 		name := fmt.Sprintf("%d-%d.json", old.TreeSize, newC.TreeSize)
-		if err := writeJSON(filepath.Join(out, "proofs", "consistency", name), proof); err != nil {
+		if err := writeJSON(filepath.Join(consDir, name), proof); err != nil {
 			return err
 		}
 	}
@@ -235,7 +276,18 @@ func Bundle(opt Options) error {
 		return err
 	}
 
-	// Per-server histories (hashes + metadata only).
+	if err := writeServerShards(serversDir, ents, fullPublish); err != nil {
+		return err
+	}
+	if err := writeInclusionSample(incDir, leaves, size, rootHex, maxProofs, fullPublish, opt.Since); err != nil {
+		return err
+	}
+
+	_ = latest
+	return nil
+}
+
+func writeServerShards(serversDir string, ents []log.StoredEntry, fullPublish bool) error {
 	byServer := map[string][]ServerObservation{}
 	for _, e := range ents {
 		byServer[e.ServerID] = append(byServer[e.ServerID], ServerObservation{
@@ -252,86 +304,86 @@ func Bundle(opt Options) error {
 	}
 	sort.Strings(ids)
 
-	index := ServerIndex{Servers: make([]ServerIndexEntry, 0, len(ids))}
+	shards := map[string]*ServerShard{}
 	for _, id := range ids {
 		obs := byServer[id]
-		file := serverFileName(id)
-		index.Servers = append(index.Servers, ServerIndexEntry{
-			ID:    id,
-			File:  file,
-			Count: len(obs),
-		})
-		// Incremental: rewrite server file if any observation idx >= Since.
-		if opt.Since > 0 {
-			touched := false
-			for _, o := range obs {
-				if o.Idx >= opt.Since {
-					touched = true
-					break
-				}
-			}
-			if !touched {
-				continue
-			}
+		file := serverShardName(id)
+		sh := shards[file]
+		if sh == nil {
+			sh = &ServerShard{Servers: map[string]ServerShardEntry{}}
+			shards[file] = sh
 		}
-		hist := ServerHistory{ID: id, Observations: obs}
-		if err := writeJSON(filepath.Join(out, "servers", file), hist); err != nil {
+		sh.Servers[id] = ServerShardEntry{Observations: obs}
+	}
+	for file, sh := range shards {
+		if err := writeJSON(filepath.Join(serversDir, file), sh); err != nil {
 			return err
 		}
 	}
-	if err := writeJSON(filepath.Join(out, "servers", "index.json"), index); err != nil {
-		return err
-	}
+	// Full publish already reset the directory. Incremental leaves orphans on
+	// disk by design; index always reflects shards that actually exist and
+	// the servers we just wrote into them.
+	return writeServerIndex(serversDir, ids, byServer)
+}
 
-	// Inclusion proofs.
-	from := opt.Since
-	if from < 0 {
-		from = 0
+func writeServerIndex(serversDir string, ids []string, byServer map[string][]ServerObservation) error {
+	index := ServerIndex{Servers: make([]ServerIndexEntry, 0, len(ids))}
+	for _, id := range ids {
+		file := serverShardName(id)
+		// Only list servers whose shard file is present.
+		if _, err := os.Stat(filepath.Join(serversDir, file)); err != nil {
+			continue
+		}
+		index.Servers = append(index.Servers, ServerIndexEntry{
+			ID:    id,
+			File:  file,
+			Count: len(byServer[id]),
+		})
 	}
-	for i := int(from); i < len(leaves); i++ {
+	return writeJSON(filepath.Join(serversDir, "index.json"), index)
+}
+
+func writeInclusionSample(incDir string, leaves [][]byte, treeSize int64, rootHex string, maxProofs int, fullPublish bool, since int64) error {
+	indices := SelectProofIndices(treeSize, maxProofs)
+	for _, idx := range indices {
+		if !fullPublish && since > 0 && idx < since {
+			continue
+		}
+		i := int(idx)
+		if i < 0 || i >= len(leaves) {
+			return fmt.Errorf("publish: sampled index %d out of range (tree_size=%d)", idx, treeSize)
+		}
 		path, err := log.InclusionAuditPath(i, leaves)
 		if err != nil {
 			return fmt.Errorf("publish: inclusion %d: %w", i, err)
 		}
 		pj := InclusionProofJSON{
-			Index:     int64(i),
-			TreeSize:  size,
+			Index:     idx,
+			TreeSize:  treeSize,
 			LeafHash:  hex.EncodeToString(leaves[i]),
 			AuditPath: pathHex(path),
 			RootHash:  rootHex,
 		}
-		if err := writeJSON(filepath.Join(out, "proofs", "inclusion", fmt.Sprintf("%d.json", i)), pj); err != nil {
+		if err := writeJSON(filepath.Join(incDir, fmt.Sprintf("%d.json", idx)), pj); err != nil {
 			return err
 		}
 	}
-	// Index must list every proof file that exists on disk (including those
-	// retained from a prior --since incremental publish). HTTP verify cannot
-	// readdir, so this file is authoritative for remote sampling.
-	if err := writeInclusionIndex(filepath.Join(out, "proofs", "inclusion")); err != nil {
-		return err
-	}
-
-	_ = latest
-	return nil
+	// Index lists proofs that actually exist on disk (full publish: exactly
+	// the sample; --since: sample union prior leftovers).
+	return writeInclusionIndexFromDisk(incDir, treeSize, maxProofs)
 }
 
-// writeInclusionIndex writes proofs/inclusion/index.json from the proof files
-// actually present (sorted indices + count).
-func writeInclusionIndex(dir string) error {
-	entries, err := os.ReadDir(dir)
+func writeInclusionIndexFromDisk(incDir string, treeSize int64, maxProofs int) error {
+	entries, err := os.ReadDir(incDir)
 	if err != nil {
 		return err
 	}
 	var indices []int64
 	for _, e := range entries {
-		if e.IsDir() {
+		if e.IsDir() || !isInclusionProofFile(e.Name()) {
 			continue
 		}
-		name := e.Name()
-		if name == "index.json" || !strings.HasSuffix(name, ".json") {
-			continue
-		}
-		stem := strings.TrimSuffix(name, ".json")
+		stem := strings.TrimSuffix(e.Name(), ".json")
 		idx, err := strconv.ParseInt(stem, 10, 64)
 		if err != nil || idx < 0 {
 			continue
@@ -339,10 +391,160 @@ func writeInclusionIndex(dir string) error {
 		indices = append(indices, idx)
 	}
 	sort.Slice(indices, func(i, j int) bool { return indices[i] < indices[j] })
-	return writeJSON(filepath.Join(dir, "index.json"), map[string]any{
-		"count":   len(indices),
-		"indices": indices,
+	return writeJSON(filepath.Join(incDir, "index.json"), InclusionIndex{
+		Count:        len(indices),
+		TotalEntries: treeSize,
+		MaxProofs:    maxProofs,
+		Rule:         "plumbline-proofsample-v1",
+		Indices:      indices,
 	})
+}
+
+// resetLayoutDirs removes bundle layout files under out/proofs and out/servers.
+// It never deletes outside out, never removes out itself, and only matches
+// known publish-bundle filenames (never a blind rm -rf).
+func resetLayoutDirs(out string) error {
+	absOut, err := filepath.Abs(out)
+	if err != nil {
+		return fmt.Errorf("publish: resolve --out: %w", err)
+	}
+	if absOut == "" || absOut == string(filepath.Separator) {
+		return fmt.Errorf("publish: refusing to reset unsafe --out %q", out)
+	}
+	type target struct {
+		rel   string
+		match func(string) bool
+	}
+	targets := []target{
+		{"proofs/inclusion", isInclusionLayoutFile},
+		{"proofs/consistency", isConsistencyLayoutFile},
+		{"servers", isServerLayoutFile},
+	}
+	for _, t := range targets {
+		dir := filepath.Join(absOut, filepath.FromSlash(t.rel))
+		if !pathInside(absOut, dir) {
+			return fmt.Errorf("publish: refusing to clear %q (outside --out)", dir)
+		}
+		if err := clearDirMatching(dir, t.match); err != nil {
+			return fmt.Errorf("publish: clear %s: %w", t.rel, err)
+		}
+	}
+	return nil
+}
+
+func pathInside(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return true
+}
+
+func isInclusionProofFile(name string) bool {
+	if !strings.HasSuffix(name, ".json") || name == "index.json" {
+		return false
+	}
+	stem := strings.TrimSuffix(name, ".json")
+	_, err := strconv.ParseInt(stem, 10, 64)
+	return err == nil
+}
+
+func isInclusionLayoutFile(name string) bool {
+	return name == "index.json" || isInclusionProofFile(name)
+}
+
+func isConsistencyLayoutFile(name string) bool {
+	if !strings.HasSuffix(name, ".json") {
+		return false
+	}
+	stem := strings.TrimSuffix(name, ".json")
+	parts := strings.Split(stem, "-")
+	if len(parts) != 2 {
+		return false
+	}
+	if _, err := strconv.ParseInt(parts[0], 10, 64); err != nil {
+		return false
+	}
+	_, err := strconv.ParseInt(parts[1], 10, 64)
+	return err == nil
+}
+
+func isServerLayoutFile(name string) bool {
+	if name == "index.json" {
+		return true
+	}
+	if !strings.HasSuffix(name, ".json") {
+		return false
+	}
+	stem := strings.TrimSuffix(name, ".json")
+	// Current shards: two hex digits. Legacy: full SHA-256 hex of server id.
+	if len(stem) == 2 || len(stem) == 64 {
+		for _, c := range stem {
+			if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// SelectProofIndices returns the sorted leaf indices for which inclusion
+// proofs are published under plumbline-proofsample-v1.
+//
+// Include index i (0 ≤ i < treeSize) iff any of:
+//  1. i < maxProofs
+//  2. i is among the last min(TailProofs, treeSize) indices
+//  3. uint64(SHA-256("plumbline-proofsample-v1|" + decimal(i))[:8]) % treeSize < maxProofs
+//
+// When treeSize ≤ maxProofs, every index is included.
+func SelectProofIndices(treeSize int64, maxProofs int) []int64 {
+	if treeSize <= 0 {
+		return nil
+	}
+	if maxProofs <= 0 {
+		maxProofs = DefaultMaxProofs
+	}
+	if treeSize <= int64(maxProofs) {
+		out := make([]int64, treeSize)
+		for i := int64(0); i < treeSize; i++ {
+			out[i] = i
+		}
+		return out
+	}
+
+	selected := make(map[int64]struct{}, maxProofs+TailProofs)
+	for i := int64(0); i < int64(maxProofs) && i < treeSize; i++ {
+		selected[i] = struct{}{}
+	}
+	tail := int64(TailProofs)
+	if tail > treeSize {
+		tail = treeSize
+	}
+	for i := treeSize - tail; i < treeSize; i++ {
+		selected[i] = struct{}{}
+	}
+	mod := uint64(treeSize) //nolint:gosec // G115 -- treeSize > 0
+	if maxProofs < 0 {
+		maxProofs = DefaultMaxProofs
+	}
+	threshold := uint64(maxProofs) //nolint:gosec // G115 -- non-negative after clamp
+	for i := int64(0); i < treeSize; i++ {
+		sum := sha256.Sum256([]byte(ProofSampleV1 + strconv.FormatInt(i, 10)))
+		n := binary.BigEndian.Uint64(sum[:8])
+		if n%mod < threshold {
+			selected[i] = struct{}{}
+		}
+	}
+	out := make([]int64, 0, len(selected))
+	for i := range selected {
+		out = append(out, i)
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a] < out[b] })
+	return out
 }
 
 func consistencyBetween(leaves [][]byte, oldSize, newSize int64) (ConsistencyProofJSON, error) {
@@ -381,9 +583,9 @@ func pathHex(path [][]byte) []string {
 	return out
 }
 
-func serverFileName(id string) string {
+func serverShardName(id string) string {
 	sum := sha256.Sum256([]byte(id))
-	return hex.EncodeToString(sum[:]) + ".json"
+	return hex.EncodeToString(sum[:1]) + ".json"
 }
 
 func eventType(e log.StoredEntry) string {
@@ -420,6 +622,36 @@ func lastRunDate(ents []log.StoredEntry) string {
 	return time.Unix(max, 0).UTC().Format("2006-01-02")
 }
 
+func clearDirMatching(dir string, match func(name string) bool) error {
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(absDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if !match(e.Name()) {
+			continue
+		}
+		p := filepath.Join(absDir, e.Name())
+		if !pathInside(absDir, p) {
+			return fmt.Errorf("publish: refusing to remove %q", p)
+		}
+		if err := os.Remove(p); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func writeJSON(path string, v any) error {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -434,4 +666,19 @@ func writeFile(path string, b []byte) error {
 		return err
 	}
 	return os.WriteFile(path, b, 0o644) //nolint:gosec // G306 — public static artifacts
+}
+
+// CountBundleFiles returns the number of regular files under dir (recursive).
+func CountBundleFiles(dir string) (int, error) {
+	n := 0
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			n++
+		}
+		return nil
+	})
+	return n, err
 }
