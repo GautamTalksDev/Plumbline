@@ -1,12 +1,12 @@
 module github.com/GautamTalksDev/Plumbline
 
-go 1.23
+go 1.25.0
 
 require (
 	github.com/spf13/cobra v1.10.2
 	github.com/ucarion/jcs v0.1.2
 	golang.org/x/term v0.27.0
-	golang.org/x/text v0.21.0
+	golang.org/x/text v0.41.0
 	modernc.org/sqlite v1.34.5
 )
 
